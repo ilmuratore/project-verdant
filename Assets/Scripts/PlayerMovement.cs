@@ -1,17 +1,21 @@
+using UnityEditor.Tilemaps;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Rendering;
 
 public class PlayerMovement : MonoBehaviour
 {
     public float velocita = 5f;
     private Rigidbody2D player;
+    private Animator anim;
+    private int facingDirection = 1;
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         player = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>();
+
     }
 
     // Update is called once per frame
@@ -26,6 +30,25 @@ public class PlayerMovement : MonoBehaviour
         if (Keyboard.current.sKey.isPressed) y = -1f;
 
 
+        if(x > 0 && transform.localScale.x < 0 || x < 0 && transform.localScale.x > 0)
+        {
+            Flip();
+        }
+
+        anim.SetFloat("horizontal", Mathf.Abs(x));
+        anim.SetFloat("vertical", Mathf.Abs(y));
+
         player.linearVelocity = new Vector2(x, y).normalized * velocita;
+       
     }
+
+    void Flip()
+    {
+        facingDirection *= -1;
+        transform.localScale = new Vector3(transform.localScale.x * -1, transform.localScale.y, transform.localScale.z);
+    }
+
+    
+
+  
 }
