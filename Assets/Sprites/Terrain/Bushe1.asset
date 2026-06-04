@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13b75c95f34a00d4e8c04f76b73312e6, type: 3}
+  m_Name: Bushe1
+  m_EditorClassIdentifier: Unity.2D.Tilemap.Extras::UnityEngine.Tilemaps.AnimatedTile
+  m_AnimatedSprites:
+  - {fileID: -3885278797278204714, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
+  - {fileID: -4988311467233121452, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
+  - {fileID: 2847678715978982054, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
+  - {fileID: 5249359379302588804, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
+  - {fileID: -800303415, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
+  - {fileID: -10308484, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
+  - {fileID: 602363318, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
+  - {fileID: 1731249823, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
+  m_MinSpeed: 5
+  m_MaxSpeed: 5
+  m_AnimationStartTime: 0
+  m_AnimationStartFrame: 0
+  m_TileColliderType: 0
+  m_TileAnimationFlags: 0
