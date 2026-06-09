@@ -4,8 +4,13 @@ public class Enemy_Combat : MonoBehaviour
 {
     public int damage = 1;
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    public void InflictDamage()
     {
-        collision.gameObject.GetComponent<PlayerHealth>().ChangeHealth(-damage);
+        Transform player = GetComponent<Enemy_Movement>().player;
+        if( player != null)
+        {
+            player.GetComponent<PlayerHealth>().ChangeHealth(-damage);
+        }
+            
     }
 }
