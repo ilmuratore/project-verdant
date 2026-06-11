@@ -14,6 +14,7 @@ public class Enemy_Movement : MonoBehaviour
     public float attackRange = 0.6f;
     public float speed;
     public Transform player;
+
     private Rigidbody2D rb;
     private Animator enemyAnim;
     private SpriteRenderer sr;
@@ -27,26 +28,37 @@ public class Enemy_Movement : MonoBehaviour
         enemyAnim = GetComponent<Animator>();
         sr = GetComponent<SpriteRenderer>();
         detectionCollider = GetComponent<CircleCollider2D>();
+
         posizioneIniziale = transform.position;
     }
 
     void FixedUpdate()
     {
+        if (player == null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            enemyAnim.SetBool("IsRunning", false);
+            enemyAnim.SetBool("Attack", false);
+            return;
+        }
+
         if (currentState == EnemyState.Chasing)
         {
-            Vector2 colliderCenter = (Vector2)transform.position + detectionCollider.offset;
-            float distanceToPlayer = Vector2.Distance(colliderCenter, player.position);
+            float distanceToPlayer = GetDistanceToPlayer();
 
-            if (distanceToPlayer > detectionCollider.radius)
+            if (distanceToPlayer > GetDetectionRadius())
             {
                 currentState = EnemyState.Idle;
                 return;
             }
 
             Vector2 direction = (player.position - transform.position).normalized;
+
             rb.linearVelocity = direction * speed;
+
             enemyAnim.SetBool("IsRunning", true);
             enemyAnim.SetBool("Attack", false);
+
             FlipECollider(direction);
 
             if (distanceToPlayer <= attackRange)
@@ -57,10 +69,12 @@ public class Enemy_Movement : MonoBehaviour
         else if (currentState == EnemyState.Attack)
         {
             rb.linearVelocity = Vector2.zero;
+
             enemyAnim.SetBool("IsRunning", false);
             enemyAnim.SetBool("Attack", true);
 
-            float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+            float distanceToPlayer = GetDistanceToPlayer();
+
             if (distanceToPlayer > attackRange)
             {
                 enemyAnim.SetBool("Attack", false);
@@ -71,19 +85,30 @@ public class Enemy_Movement : MonoBehaviour
         {
             enemyAnim.SetBool("Attack", false);
 
-            if (player != null)
+            float distanceToPlayer = GetDistanceToPlayer();
+
+            if (distanceToPlayer <= GetDetectionRadius())
             {
-                Vector2 colliderCenter = (Vector2)transform.position + detectionCollider.offset;
-                float distanceToPlayer = Vector2.Distance(colliderCenter, player.position);
-                if (distanceToPlayer <= detectionCollider.radius)
-                {
-                    currentState = EnemyState.Chasing;
-                    return;
-                }
+                currentState = EnemyState.Chasing;
+                return;
             }
 
             ReturnBase();
         }
+    }
+
+    private float GetDistanceToPlayer()
+    {
+        Vector2 colliderCenter = (Vector2)transform.position + detectionCollider.offset;
+        return Vector2.Distance(colliderCenter, player.position);
+    }
+
+    private float GetDetectionRadius()
+    {
+        return detectionCollider.radius * Mathf.Max(
+            Mathf.Abs(transform.lossyScale.x),
+            Mathf.Abs(transform.lossyScale.y)
+        );
     }
 
     private void FlipECollider(Vector2 direction)
@@ -91,30 +116,50 @@ public class Enemy_Movement : MonoBehaviour
         if (direction.x > 0.1f)
         {
             sr.flipX = false;
-            detectionCollider.offset = new Vector2(Mathf.Abs(detectionCollider.offset.x), detectionCollider.offset.y);
+
+            detectionCollider.offset = new Vector2(
+                Mathf.Abs(detectionCollider.offset.x),
+                detectionCollider.offset.y
+            );
         }
         else if (direction.x < -0.1f)
         {
             sr.flipX = true;
-            detectionCollider.offset = new Vector2(-Mathf.Abs(detectionCollider.offset.x), detectionCollider.offset.y);
+
+            detectionCollider.offset = new Vector2(
+                -Mathf.Abs(detectionCollider.offset.x),
+                detectionCollider.offset.y
+            );
         }
     }
 
     private void ReturnBase()
     {
         float distanza = Vector2.Distance(transform.position, posizioneIniziale);
+
         if (distanza > 0.1f)
         {
             Vector2 direction = (posizioneIniziale - transform.position).normalized;
+
             rb.linearVelocity = direction * speed;
+
             enemyAnim.SetBool("IsRunning", true);
+            enemyAnim.SetBool("Attack", false);
+
             FlipECollider(direction);
         }
         else
         {
             rb.linearVelocity = Vector2.zero;
-            detectionCollider.offset = new Vector2(Mathf.Abs(detectionCollider.offset.x), detectionCollider.offset.y);
+
             enemyAnim.SetBool("IsRunning", false);
+            enemyAnim.SetBool("Attack", false);
+
+            detectionCollider.offset = new Vector2(
+                Mathf.Abs(detectionCollider.offset.x),
+                detectionCollider.offset.y
+            );
+
             sr.flipX = false;
         }
     }
