@@ -7,13 +7,14 @@ public enum EnemyState
     Attack
 }
 
-public class Enemy_Movement : MonoBehaviour
+public class Enemy_AI : MonoBehaviour
 {
     [SerializeField] protected EnemyState currentState = EnemyState.Idle;
 
     public float attackRange = 0.6f;
     public float speed;
     public Transform player;
+    public int damage = 1;
 
     private Rigidbody2D rb;
     private Animator enemyAnim;
@@ -30,23 +31,29 @@ public class Enemy_Movement : MonoBehaviour
         detectionCollider = GetComponent<CircleCollider2D>();
 
         posizioneIniziale = transform.position;
+
+        currentState = EnemyState.Idle;
+        rb.linearVelocity = Vector2.zero;
+        enemyAnim.SetBool("IsRunning", false);
+        enemyAnim.SetBool("Attack", false);
     }
 
     void FixedUpdate()
     {
-        if (player == null)
+        if (player == null || !player.gameObject.activeInHierarchy)
         {
             rb.linearVelocity = Vector2.zero;
             enemyAnim.SetBool("IsRunning", false);
             enemyAnim.SetBool("Attack", false);
+            currentState = EnemyState.Idle;
             return;
         }
 
         if (currentState == EnemyState.Chasing)
         {
-            float distanceToPlayer = GetDistanceToPlayer();
+            float distanceToDetection = GetDistanceToDetection();
 
-            if (distanceToPlayer > GetDetectionRadius())
+            if (distanceToDetection > GetDetectionRadius())
             {
                 currentState = EnemyState.Idle;
                 return;
@@ -61,8 +68,15 @@ public class Enemy_Movement : MonoBehaviour
 
             FlipECollider(direction);
 
+            float distanceToPlayer = GetDistanceToPlayer();
+
             if (distanceToPlayer <= attackRange)
             {
+                rb.linearVelocity = Vector2.zero;
+
+                enemyAnim.SetBool("IsRunning", false);
+                enemyAnim.SetBool("Attack", true);
+
                 currentState = EnemyState.Attack;
             }
         }
@@ -71,7 +85,9 @@ public class Enemy_Movement : MonoBehaviour
             rb.linearVelocity = Vector2.zero;
 
             enemyAnim.SetBool("IsRunning", false);
-            enemyAnim.SetBool("Attack", true);
+
+            Vector2 direction = (player.position - transform.position).normalized;
+            FlipECollider(direction);
 
             float distanceToPlayer = GetDistanceToPlayer();
 
@@ -85,9 +101,9 @@ public class Enemy_Movement : MonoBehaviour
         {
             enemyAnim.SetBool("Attack", false);
 
-            float distanceToPlayer = GetDistanceToPlayer();
+            float distanceToDetection = GetDistanceToDetection();
 
-            if (distanceToPlayer <= GetDetectionRadius())
+            if (distanceToDetection <= GetDetectionRadius())
             {
                 currentState = EnemyState.Chasing;
                 return;
@@ -98,6 +114,11 @@ public class Enemy_Movement : MonoBehaviour
     }
 
     private float GetDistanceToPlayer()
+    {
+        return Vector2.Distance(transform.position, player.position);
+    }
+
+    private float GetDistanceToDetection()
     {
         Vector2 colliderCenter = (Vector2)transform.position + detectionCollider.offset;
         return Vector2.Distance(colliderCenter, player.position);
@@ -162,5 +183,70 @@ public class Enemy_Movement : MonoBehaviour
 
             sr.flipX = false;
         }
+    }
+
+    public void InflictDamage()
+    {
+        if (!CanInflictDamage())
+            return;
+
+        PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+
+        if (playerHealth == null)
+            return;
+
+        if (playerHealth.currentHealth <= 0)
+            return;
+
+        playerHealth.ChangeHealth(-damage);
+    }
+
+    public void EndAttack()
+    {
+        enemyAnim.SetBool("Attack", false);
+
+        if (player == null || !player.gameObject.activeInHierarchy)
+        {
+            currentState = EnemyState.Idle;
+            return;
+        }
+
+        float distanceToDetection = GetDistanceToDetection();
+
+        if (distanceToDetection <= GetDetectionRadius())
+        {
+            currentState = EnemyState.Chasing;
+        }
+        else
+        {
+            currentState = EnemyState.Idle;
+        }
+    }
+
+    private bool CanInflictDamage()
+    {
+        if (player == null)
+            return false;
+
+        if (!player.gameObject.activeInHierarchy)
+            return false;
+
+        if (currentState != EnemyState.Attack)
+            return false;
+
+        float distanceToPlayer = GetDistanceToPlayer();
+
+        if (distanceToPlayer > attackRange)
+            return false;
+
+        PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+
+        if (playerHealth == null)
+            return false;
+
+        if (playerHealth.currentHealth <= 0)
+            return false;
+
+        return true;
     }
 }
