@@ -206,15 +206,12 @@ public class Enemy_AI : MonoBehaviour
             return;
 
         PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
-
-        if (playerHealth == null)
-            return;
-
-        if (playerHealth.currentHealth <= 0)
-            return;
+        if (playerHealth == null) return;
+        if (playerHealth.currentHealth <= 0) return;
 
         playerHealth.ChangeHealth(-damage);
     }
+
     public void EndAttack()
     {
         if (!PlayerValido())
