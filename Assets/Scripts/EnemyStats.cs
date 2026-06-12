@@ -30,6 +30,7 @@ public class EnemyStats : MonoBehaviour
 
         if (anim != null)
         {
+            anim.ResetTrigger("Attack");
             anim.SetTrigger("Hit");
         }
 
@@ -56,12 +57,13 @@ public class EnemyStats : MonoBehaviour
         Enemy_AI ai = GetComponent<Enemy_AI>();
         if (ai != null)
         {
+            ai.EndAttack();
             ai.enabled = false;
         }
 
         if (anim != null)
         {
-            anim.SetTrigger("Death");
+            anim.SetTrigger("Destroy");
         }
         else
         {
