@@ -1,25 +1,82 @@
+using System.Collections;
+using System.Security.Cryptography;
 using UnityEditor.Tilemaps;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+public enum PlayerState
+{
+    Idle,
+    Moving,
+    Dodging,
+    Attacking,
+    Dead
+}
+
 public class PlayerMovement : MonoBehaviour
 {
-    public float velocita = 5f;
+    [Header("Movement")]
+    public float velocita = 2.5f;
+
+
+    [Header("Dodge")]
+    public float dodgeSpeed = 5f;
+    public float dodgeDuration = 0.2f;
+    public float dodgeCooldown = 3f;
+
+    [Header("State")]
+    [SerializeField] private PlayerState currentState = PlayerState.Idle;
+
     private Rigidbody2D player;
     private Animator anim;
+    private PlayerHealth playerHealth;
+
+    private Vector2 inputDirection;
+    private Vector2 lastMoveDirection = Vector2.right;
+
     private int facingDirection = 1;
+    private bool canDodge = true;
 
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        
         player = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+        playerHealth = GetComponent<PlayerHealth>();
 
     }
 
-    // Update is called once per frame
-    void FixedUpdate() // Agisce con un tempo fisso in linea con il motore fisico di RigidBody2D. Quindi la velocitá di lettura input non dipende dalla velocitá di generazione dei frame.
+    void Update()
+    {
+        if(currentState == PlayerState.Dead)
+        {
+            return;
+        }
+        ReadMovementInput();
+        HandleDodgeInput();
+
+
+    }
+
+    void FixedUpdate() 
+    {
+       switch (currentState)
+        {
+            case PlayerState.Idle:
+            case PlayerState.Moving:
+                MovePlayer(); 
+                break;
+
+            case PlayerState.Dodging:
+            case PlayerState.Attacking:
+            case PlayerState.Dead:
+                break;
+        }
+    }
+
+
+    private void ReadMovementInput()
     {
         float x = 0f;
         float y = 0f;
@@ -30,16 +87,66 @@ public class PlayerMovement : MonoBehaviour
         if (Keyboard.current.sKey.isPressed) y = -1f;
 
 
-        if(x > 0 && transform.localScale.x < 0 || x < 0 && transform.localScale.x > 0)
+        inputDirection = new Vector2(x, y).normalized;
+
+        if (inputDirection != Vector2.zero)
         {
-            Flip();
+            lastMoveDirection = inputDirection;
         }
+    }
 
-        anim.SetFloat("horizontal", Mathf.Abs(x));
-        anim.SetFloat("vertical", Mathf.Abs(y));
+    private void MovePlayer()
+    {
+        player.linearVelocity = inputDirection * velocita;
 
-        player.linearVelocity = new Vector2(x, y).normalized * velocita;
-       
+        TransizioneA(inputDirection != Vector2.zero ? PlayerState.Moving : PlayerState.Idle);
+        if((inputDirection.x > 0 && transform.localScale.x <0) || (inputDirection.x < 0 && transform.localScale.x > 0)) { Flip(); }
+        UpdateMovementAnimation();
+
+    }
+
+    private void HandleDodgeInput()
+    {
+        if(Keyboard.current.vKey.wasPressedThisFrame && canDodge){
+            StartCoroutine(Dodge());
+        }
+    }
+
+    private IEnumerator Dodge()
+    {
+        canDodge = false;
+        TransizioneA(PlayerState.Dodging);
+        if(playerHealth != null)
+        {
+            playerHealth.SetInvulnerable(true);
+        }
+        if( anim != null)
+        {
+            anim.SetTrigger("Dodge");
+        }
+        player.linearVelocity = lastMoveDirection * dodgeSpeed;
+        yield return new WaitForSeconds(dodgeDuration);
+        player.linearVelocity = Vector2.zero;
+        if(playerHealth != null)
+        {
+            playerHealth.SetInvulnerable(false);
+        }
+        TransizioneA(PlayerState.Idle);
+        yield return new WaitForSeconds(dodgeCooldown);
+        canDodge = true;
+    }
+
+    private void TransizioneA(PlayerState nuovo)
+    {
+        currentState = nuovo;
+    }
+
+    private void UpdateMovementAnimation()
+    {
+        if (anim == null) return;
+        anim.SetFloat("horizontal", Mathf.Abs(inputDirection.x));
+        anim.SetFloat("vertical", Mathf.Abs(inputDirection.y));
+        anim.SetBool("IsMoving", inputDirection != Vector2.zero);
     }
 
     void Flip()
