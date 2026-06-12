@@ -8116,7 +8116,7 @@ Tilemap:
       - {fileID: -1115025787, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
       - {fileID: -1857124830, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
       - {fileID: -1234149357, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
-      m_AnimationSpeed: 5
+      m_AnimationSpeed: 5.0000005
       m_AnimationTimeOffset: 0
       m_Flags: 0
   - first: {x: -12, y: -4, z: 0}
@@ -8131,7 +8131,7 @@ Tilemap:
       - {fileID: 956958138, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
       - {fileID: -706398544, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
       - {fileID: 983730447, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
-      m_AnimationSpeed: 5.0000005
+      m_AnimationSpeed: 5
       m_AnimationTimeOffset: 0
       m_Flags: 0
   - first: {x: -11, y: -4, z: 0}
@@ -8311,7 +8311,7 @@ Tilemap:
       - {fileID: -1852685578, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
       - {fileID: -443766583, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
       - {fileID: -493418687, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
-      m_AnimationSpeed: 5.0000005
+      m_AnimationSpeed: 5
       m_AnimationTimeOffset: 0
       m_Flags: 0
   - first: {x: -19, y: -2, z: 0}
@@ -8401,7 +8401,7 @@ Tilemap:
       - {fileID: 2124180541, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
       - {fileID: -1839996284, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
       - {fileID: -927499065, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
-      m_AnimationSpeed: 5.0000005
+      m_AnimationSpeed: 5
       m_AnimationTimeOffset: 0
       m_Flags: 0
   - first: {x: -20, y: -1, z: 0}
@@ -8836,7 +8836,7 @@ Tilemap:
       - {fileID: -1852685578, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
       - {fileID: -443766583, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
       - {fileID: -493418687, guid: d665d44a6b3d4fa4ca2c9f6b1657a0eb, type: 3}
-      m_AnimationSpeed: 5.0000005
+      m_AnimationSpeed: 5
       m_AnimationTimeOffset: 0
       m_Flags: 0
   - first: {x: -51, y: 2, z: 0}
@@ -9766,7 +9766,7 @@ Tilemap:
       - {fileID: -1115025787, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
       - {fileID: -1857124830, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
       - {fileID: -1234149357, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
-      m_AnimationSpeed: 5
+      m_AnimationSpeed: 5.0000005
       m_AnimationTimeOffset: 0
       m_Flags: 0
   - first: {x: -21, y: 12, z: 0}
@@ -10351,7 +10351,7 @@ Tilemap:
       - {fileID: 956958138, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
       - {fileID: -706398544, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
       - {fileID: 983730447, guid: aa5139f87d5452e4aa2aa16afacbbce1, type: 3}
-      m_AnimationSpeed: 5
+      m_AnimationSpeed: 5.0000005
       m_AnimationTimeOffset: 0
       m_Flags: 0
   - first: {x: -52, y: 17, z: 0}
@@ -11119,7 +11119,7 @@ GameObject:
   - component: {fileID: 522790478}
   - component: {fileID: 522790479}
   - component: {fileID: 522790480}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Enemy1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -12614,6 +12614,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1659498227
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1659498228}
+  m_Layer: 0
+  m_Name: AttackPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1659498228
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1659498227}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1900071009}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1900071006
 GameObject:
   m_ObjectHideFlags: 0
@@ -12629,6 +12660,7 @@ GameObject:
   - component: {fileID: 1900071011}
   - component: {fileID: 1900071012}
   - component: {fileID: 1900071013}
+  - component: {fileID: 1900071014}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -12670,8 +12702,8 @@ CapsuleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.021268845, y: 0.035643816}
-  m_Size: {x: 0.35669327, y: 1.2535598}
+  m_Offset: {x: -0.016643524, y: -0.03070575}
+  m_Size: {x: 0.5746994, y: 1.0071186}
   m_Direction: 0
 --- !u!212 &1900071008
 SpriteRenderer:
@@ -12741,10 +12773,11 @@ Transform:
   m_GameObject: {fileID: 1900071006}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -45, y: 0, z: 0}
+  m_LocalPosition: {x: -50.36, y: 4.16, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1659498228}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &1900071010
@@ -12787,6 +12820,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   velocita: 3
+  dodgeSpeed: 5
+  dodgeDuration: 0.2
+  dodgeCooldown: 3
+  currentState: 0
 --- !u!95 &1900071012
 Animator:
   serializedVersion: 7
@@ -12825,6 +12862,24 @@ MonoBehaviour:
   maxHealth: 3
   healthText: {fileID: 1942869}
   healthTextAnim: {fileID: 1942871}
+--- !u!114 &1900071014
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1900071006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 707236f59c78526468c5ec2153b92805, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
+  damage: 1
+  attackRange: 0.5
+  attackPoint: {fileID: 1659498228}
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 64
 --- !u!1 &2051045658
 GameObject:
   m_ObjectHideFlags: 0
@@ -12867,6 +12922,7 @@ GameObject:
   - component: {fileID: 2069108563}
   - component: {fileID: 2069108565}
   - component: {fileID: 2069108564}
+  - component: {fileID: 2069108566}
   m_Layer: 0
   m_Name: level0
   m_TagString: Untagged
@@ -31511,6 +31567,28 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!95 &2069108566
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2069108562}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 42b82f6f56906444eb9e9ec44383ac6a, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &2122337933
 GameObject:
   m_ObjectHideFlags: 0
