@@ -1,11 +1,13 @@
 using TMPro;
+using Unity.VisualScripting.Antlr3.Runtime.Misc;
+using Unity.VisualScripting.Antlr3.Runtime.Tree;
 using UnityEngine;
 
 public class PlayerHealth : MonoBehaviour
 {
 
     [Header("Stats")]
-    public PlayerStatsData stats;
+    public PlayerStats stats;
 
     [Header("Runtime")]
     public int currentHealth;
@@ -19,20 +21,26 @@ public class PlayerHealth : MonoBehaviour
     {
         if(stats != null)
         {
-            currentHealth = stats.maxHealth;
+            currentHealth = stats.vitaMassimaEffettiva;
         }
         UpdateHealthText();
 
     }
 
-    public void ChangeHealth(int amount )
+    public void ChangeHealth(int amount)
     {
         if(isInvulnerable && amount < 0)
         {
             return;
         }
+
+        if(amount < 0 && stats != null)
+        {
+            int dannoSubito = stats.ApplicaDifesa(-amount);
+            amount = -dannoSubito;
+        }
         currentHealth += amount;
-        int max = stats.maxHealth;
+        int max = stats.vitaMassimaEffettiva;
         currentHealth = Mathf.Clamp(currentHealth, 0, max);
         if(healthTextAnim != null)
         {
@@ -47,6 +55,12 @@ public class PlayerHealth : MonoBehaviour
         }
     }
     
+    public void AumentaVitaMassima(int quantita)
+    {
+        currentHealth += quantita;
+        UpdateHealthText();
+    }
+
     public void SetInvulnerable(bool value)
     {
         isInvulnerable = value;
@@ -56,7 +70,7 @@ public class PlayerHealth : MonoBehaviour
     {
         if (healthText != null)
         {
-            int max = stats.maxHealth;
+            int max = stats.vitaMassimaEffettiva;
             healthText.text = "HP: " + currentHealth + " / " + max;
         }
     }

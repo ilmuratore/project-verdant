@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 public class PlayerCombat : MonoBehaviour
 {
     [Header("Stats")]
-    public PlayerStatsData stats;
+    public PlayerStats stats;
 
     [Header("Attack")]
     public Transform attackPoint;
@@ -53,8 +53,8 @@ public class PlayerCombat : MonoBehaviour
             Debug.LogWarning("AttackPoint non assegnato nel PlayerCombat");
             return;
         }
-        float range = stats.attackRange;
-        int dmg = stats.damage;
+        float range = stats.data.attackRange;
+        int dmg = stats.AttaccoEffettivo;
 
         Collider2D[] enemiesHit = Physics2D.OverlapCircleAll(
             attackPoint.position,
@@ -85,7 +85,7 @@ public class PlayerCombat : MonoBehaviour
     {
         if (attackPoint == null) return;
 
-        float range = stats.attackRange;
+        float range = stats.data.attackRange;
         Gizmos.DrawWireSphere(attackPoint.position, range);
     }
 }

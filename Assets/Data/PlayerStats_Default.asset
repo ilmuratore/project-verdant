@@ -12,7 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e149450fc70ef94cb8ff09d6cc719fd, type: 3}
   m_Name: PlayerStats_Default
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsData
-  maxHealth: 5
+  attaccoBase: 1
+  difesaBase: 1
+  vitaBase: 5
+  incrementoAttaco: 1
+  incrementoDifesa: 1
+  incrementoVita: 2
+  xpBaseLevelUp: 5
+  xpCrescita: 1.5
+  puntiPerLivello: 1
   velocita: 5
   dodgeSpeed: 12
   dodgeDuration: 0.2

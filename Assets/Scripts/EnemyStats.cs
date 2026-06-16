@@ -9,6 +9,9 @@ public class EnemyStats : MonoBehaviour
     [Header("Combat")]
     public int damage = 1;
 
+    [Header("Reward")]
+    public int xpReward = 2;
+
     private Animator anim;
     private Rigidbody2D rb;
     private Collider2D col;
@@ -44,6 +47,11 @@ public class EnemyStats : MonoBehaviour
     {
         isDead = true;
 
+        PlayerStats ps = Object.FindFirstObjectByType<PlayerStats>();
+        if (ps != null)
+        {
+            ps.AddXp(xpReward);
+        }
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
