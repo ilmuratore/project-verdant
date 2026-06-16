@@ -13,13 +13,8 @@ public enum PlayerState
 
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Movement")]
-    public float velocita = 5f;
-
-    [Header("Dodge")]
-    public float dodgeSpeed = 12f;
-    public float dodgeDuration = 0.2f;
-    public float dodgeCooldown = 0.7f;
+    [Header("Stats")]
+    public PlayerStatsData stats;
 
     [Header("State")]
     [SerializeField] private PlayerState currentState = PlayerState.Idle;
@@ -91,6 +86,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void MovePlayer()
     {
+        float velocita = (stats != null) ? stats.velocita : 5f;
         rb.linearVelocity = inputDirection * velocita;
 
         TransizioneA(inputDirection != Vector2.zero
@@ -122,6 +118,10 @@ public class PlayerMovement : MonoBehaviour
 
     private IEnumerator Dodge()
     {
+
+        float dodgeSpeed = (stats != null) ? stats.dodgeSpeed : 12f;
+        float dodgeDuration = (stats != null) ? stats.dodgeDuration : 0.2f;
+        float dodgeCooldown = (stats != null) ? stats.dodgeCooldown : 0.7f;
         canDodge = false;
         TransizioneA(PlayerState.Dodging);
 

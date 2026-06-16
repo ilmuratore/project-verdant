@@ -3,16 +3,24 @@ using UnityEngine;
 
 public class PlayerHealth : MonoBehaviour
 {
+
+    [Header("Stats")]
+    public PlayerStatsData stats;
+
+    [Header("Runtime")]
     public int currentHealth;
-    public int maxHealth;
+
+    [Header("UI")]
     public TMP_Text healthText;
     public Animator healthTextAnim;
 
-
     private bool isInvulnerable = false;
-
     private void Start()
     {
+        if(stats != null)
+        {
+            currentHealth = stats.maxHealth;
+        }
         UpdateHealthText();
 
     }
@@ -24,7 +32,8 @@ public class PlayerHealth : MonoBehaviour
             return;
         }
         currentHealth += amount;
-        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+        int max = stats.maxHealth;
+        currentHealth = Mathf.Clamp(currentHealth, 0, max);
         if(healthTextAnim != null)
         {
             healthTextAnim.Play("TextAnimation");
@@ -47,7 +56,8 @@ public class PlayerHealth : MonoBehaviour
     {
         if (healthText != null)
         {
-            healthText.text = "HP: " + currentHealth + " / " + maxHealth;
+            int max = stats.maxHealth;
+            healthText.text = "HP: " + currentHealth + " / " + max;
         }
     }
 }

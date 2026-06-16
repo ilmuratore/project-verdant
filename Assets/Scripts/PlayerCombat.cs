@@ -3,11 +3,13 @@ using UnityEngine.InputSystem;
 
 public class PlayerCombat : MonoBehaviour
 {
+    [Header("Stats")]
+    public PlayerStatsData stats;
+
     [Header("Attack")]
-    public int damage = 1;
-    public float attackRange = 0.5f;
     public Transform attackPoint;
     public LayerMask enemyLayer;
+
 
     private Animator anim;
     private PlayerMovement playerMovement;
@@ -45,15 +47,18 @@ public class PlayerCombat : MonoBehaviour
 
     public void InflictDamage()
     {
+        
         if (attackPoint == null)
         {
             Debug.LogWarning("AttackPoint non assegnato nel PlayerCombat");
             return;
         }
+        float range = stats.attackRange;
+        int dmg = stats.damage;
 
         Collider2D[] enemiesHit = Physics2D.OverlapCircleAll(
             attackPoint.position,
-            attackRange,
+            range,
             enemyLayer
         );
 
@@ -63,7 +68,7 @@ public class PlayerCombat : MonoBehaviour
 
             if (enemyStats != null)
             {
-                enemyStats.TakeDamage(damage);
+                enemyStats.TakeDamage(dmg);
             }
         }
     }
@@ -80,6 +85,7 @@ public class PlayerCombat : MonoBehaviour
     {
         if (attackPoint == null) return;
 
-        Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+        float range = stats.attackRange;
+        Gizmos.DrawWireSphere(attackPoint.position, range);
     }
 }
