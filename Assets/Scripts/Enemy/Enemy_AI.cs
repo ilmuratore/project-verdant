@@ -11,15 +11,18 @@ public class Enemy_AI : MonoBehaviour
 {
     [SerializeField] protected EnemyState currentState = EnemyState.Idle;
 
-    public float attackRange = 0.6f;
-    public float speed;
+    [Header("Riferimenti")]
     public Transform player;
-    public int damage = 1;
+
+    private float attackRange = 0.6f;
+    private float speed = 2f;
+    private int damage = 1;
 
     private Rigidbody2D rb;
     private Animator enemyAnim;
     private SpriteRenderer sr;
     private CircleCollider2D detectionCollider;
+    private EnemyStats stats;
 
     private Vector3 posizioneIniziale;
 
@@ -29,6 +32,15 @@ public class Enemy_AI : MonoBehaviour
         enemyAnim = GetComponent<Animator>();
         sr = GetComponent<SpriteRenderer>();
         detectionCollider = GetComponent<CircleCollider2D>();
+        stats = GetComponent<EnemyStats>();
+
+        // Carica i valori dallo ScriptableObject
+        if (stats != null && stats.data != null)
+        {
+            attackRange = stats.data.attackRange;
+            speed = stats.data.speed;
+            damage = stats.data.damage;
+        }
 
         posizioneIniziale = transform.position;
 
@@ -92,8 +104,6 @@ public class Enemy_AI : MonoBehaviour
 
         Vector2 direction = (player.position - transform.position).normalized;
         FlipECollider(direction);
-
-
     }
 
 

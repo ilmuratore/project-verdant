@@ -210,10 +210,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy_Movement
   currentState: 0
-  attackRange: 0.8
-  speed: 2.7
   player: {fileID: 0}
-  damage: 1
 --- !u!95 &472512864227879600
 Animator:
   serializedVersion: 7
@@ -248,6 +245,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47374e303ef8d974fa4627d1c6fb0e3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
-  maxHealth: 3
-  currentHealth: 3
-  damage: 1
+  data: {fileID: 11400000, guid: f8cf42ae84748c44889926409ae9ff21, type: 2}
+  currentHealth: 5
