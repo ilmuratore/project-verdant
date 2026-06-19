@@ -28,6 +28,8 @@ public class PlayerMovement : MonoBehaviour
 
     private int facingDirection = 1;
     private bool canDodge = true;
+    private bool controlliBloccato = false;
+
 
     void Start()
     {
@@ -38,7 +40,11 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-       
+        if (controlliBloccato)
+        {
+            return;
+        }
+
         if (currentState == PlayerState.Dead)
         {
             return;
@@ -198,5 +204,19 @@ public class PlayerMovement : MonoBehaviour
             transform.localScale.y,
             transform.localScale.z
         );
+    }
+
+    public void BloccaController()
+    {
+        controlliBloccato = true;
+        inputDirection = Vector2.zero;
+        rb.linearVelocity = Vector2.zero;
+        TransizioneA(PlayerState.Idle);
+        UpdateMovementAnimation();
+    }
+
+    public void SbloccaController()
+    {
+        controlliBloccato = false;
     }
 }
