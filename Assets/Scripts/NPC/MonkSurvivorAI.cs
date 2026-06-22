@@ -8,10 +8,11 @@ public enum MonkSurvivorState
     Dead
 }
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class MonkSurvivorAI : MonoBehaviour
 {
     [Header("Scappa")]
-    public float raggioPericolo = 1.2f;
+    public float raggioPericolo = 1.5f;
     public float velocitaFuga = 2.5f;
     public LayerMask enemyLayer;
 
@@ -24,10 +25,10 @@ public class MonkSurvivorAI : MonoBehaviour
     public LayerMask obstacleLayer;
 
     [Tooltip("Raggio usato per controllare se davanti al monaco c'è un ostacolo.")]
-    public float obstacleCheckRadius = 0.1f;
+    public float obstacleCheckRadius = 0.18f;
 
     [Tooltip("Distanza del controllo ostacolo davanti al monaco.")]
-    public float obstacleCheckDistance = 0.1f;
+    public float obstacleCheckDistance = 0.25f;
 
     [Header("Animazione")]
     public string walkingParameter = "IsWalking";
@@ -88,13 +89,12 @@ public class MonkSurvivorAI : MonoBehaviour
         }
 
         currentState = MonkSurvivorState.Safe;
+        StopMovement();
     }
 
     private bool MonkMorto()
     {
-        if (health == null) return false;
-
-        return health.isDead;
+        return health != null && health.isDead;
     }
 
     private Transform TrovaNemicoPiuVicino()
@@ -111,17 +111,20 @@ public class MonkSurvivorAI : MonoBehaviour
         foreach (Collider2D hit in hits)
         {
             if (hit == null) continue;
+            if (hit.isTrigger) continue;
             if (!hit.gameObject.activeInHierarchy) continue;
 
             EnemyStats enemyStats = hit.GetComponentInParent<EnemyStats>();
             if (enemyStats == null) continue;
 
-            float distanza = Vector2.Distance(transform.position, hit.transform.position);
+            float distanza = Vector2.Distance(transform.position, enemyStats.transform.position);
+
+            if (distanza > raggioPericolo) continue;
 
             if (distanza < distanzaMigliore)
             {
                 distanzaMigliore = distanza;
-                migliore = hit.transform;
+                migliore = enemyStats.transform;
             }
         }
 
@@ -131,7 +134,6 @@ public class MonkSurvivorAI : MonoBehaviour
     private void ScappaDa(Transform enemy)
     {
         Vector2 direzione = ((Vector2)transform.position - (Vector2)enemy.position).normalized;
-
         MuoviInDirezione(direzione, velocitaFuga);
     }
 
@@ -193,6 +195,8 @@ public class MonkSurvivorAI : MonoBehaviour
 
     private bool DirezioneLibera(Vector2 direzione)
     {
+        if (obstacleLayer.value == 0) return true;
+
         RaycastHit2D hit = Physics2D.CircleCast(
             rb.position,
             obstacleCheckRadius,
@@ -238,6 +242,7 @@ public class MonkSurvivorAI : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, raggioPericolo);
 
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, obstacleCheckRadius);
+        Vector3 centro = puntoDiPartenza == Vector3.zero ? transform.position : puntoDiPartenza;
+        Gizmos.DrawWireSphere(centro, distanzaArrivo);
     }
 }

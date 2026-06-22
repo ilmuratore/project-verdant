@@ -19,6 +19,9 @@ public class Enemy_AI : MonoBehaviour
     [Tooltip("Ogni quanto il nemico ricalcola il bersaglio più vicino tra Player e NPC.")]
     public float intervalloRicercaTarget = 0.25f;
 
+    [Tooltip("Distanza massima entro cui il nemico cerca un bersaglio. Per questa quest conviene 30 o 40.")]
+    public float raggioAggro = 30f;
+
     private Transform currentTarget;
     private float timerRicercaTarget;
 
@@ -62,6 +65,7 @@ public class Enemy_AI : MonoBehaviour
         if (!TargetValido())
         {
             VaiInIdle();
+            ReturnBase();
             return;
         }
 
@@ -85,7 +89,7 @@ public class Enemy_AI : MonoBehaviour
     {
         SetRunning(false);
 
-        if (GetDistanceToDetectionTarget() <= GetDetectionRadius())
+        if (TargetValido())
         {
             TransizioneA(EnemyState.Chasing);
             return;
@@ -96,9 +100,15 @@ public class Enemy_AI : MonoBehaviour
 
     private void UpdateChasing()
     {
-        if (GetDistanceToDetectionTarget() > GetDetectionRadius())
+        if (!TargetValido())
         {
             TransizioneA(EnemyState.Idle);
+            return;
+        }
+
+        if (TargetInAttackRange())
+        {
+            TransizioneA(EnemyState.Attack);
             return;
         }
 
@@ -107,11 +117,6 @@ public class Enemy_AI : MonoBehaviour
         rb.linearVelocity = direction * speed;
         SetRunning(true);
         FlipECollider(direction);
-
-        if (TargetInAttackRange())
-        {
-            TransizioneA(EnemyState.Attack);
-        }
     }
 
     private void UpdateAttack()
@@ -119,17 +124,15 @@ public class Enemy_AI : MonoBehaviour
         rb.linearVelocity = Vector2.zero;
         SetRunning(false);
 
+        if (!TargetValido())
+        {
+            TransizioneA(EnemyState.Idle);
+            return;
+        }
+
         if (!TargetInAttackRange())
         {
-            if (GetDistanceToDetectionTarget() <= GetDetectionRadius())
-            {
-                TransizioneA(EnemyState.Chasing);
-            }
-            else
-            {
-                TransizioneA(EnemyState.Idle);
-            }
-
+            TransizioneA(EnemyState.Chasing);
             return;
         }
 
@@ -149,7 +152,11 @@ public class Enemy_AI : MonoBehaviour
         if (nuovo == EnemyState.Attack)
         {
             SetRunning(false);
-            enemyAnim.SetTrigger("Attack");
+
+            if (enemyAnim != null)
+            {
+                enemyAnim.SetTrigger("Attack");
+            }
         }
         else if (nuovo == EnemyState.Idle)
         {
@@ -188,7 +195,7 @@ public class Enemy_AI : MonoBehaviour
     private Transform TrovaTargetPiuVicino()
     {
         Transform migliore = null;
-        float distanzaMigliore = float.MaxValue;
+        float distanzaMigliore = Mathf.Infinity;
 
         GameObject playerObj = GameObject.FindGameObjectWithTag(playerTag);
         ValutaTarget(playerObj, ref migliore, ref distanzaMigliore);
@@ -214,6 +221,8 @@ public class Enemy_AI : MonoBehaviour
 
         float distanza = Vector2.Distance(transform.position, targetTransform.position);
 
+        if (distanza > raggioAggro) return;
+
         if (distanza < distanzaMigliore)
         {
             distanzaMigliore = distanza;
@@ -223,9 +232,12 @@ public class Enemy_AI : MonoBehaviour
 
     private bool TargetValido()
     {
-        return currentTarget != null &&
-               currentTarget.gameObject.activeInHierarchy &&
-               TargetVivo(currentTarget);
+        if (currentTarget == null) return false;
+        if (!currentTarget.gameObject.activeInHierarchy) return false;
+        if (!TargetVivo(currentTarget)) return false;
+
+        float distanza = Vector2.Distance(transform.position, currentTarget.position);
+        return distanza <= raggioAggro;
     }
 
     private bool TargetVivo(Transform target)
@@ -235,18 +247,13 @@ public class Enemy_AI : MonoBehaviour
         if (target.CompareTag(playerTag))
         {
             PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
-
-            return playerHealth != null &&
-                   playerHealth.currentHealth > 0;
+            return playerHealth != null && playerHealth.currentHealth > 0;
         }
 
         if (target.CompareTag(npcTag))
         {
             MonkHealth monkHealth = target.GetComponent<MonkHealth>();
-
-            return monkHealth != null &&
-                   !monkHealth.isDead &&
-                   monkHealth.currentHealth > 0;
+            return monkHealth != null && !monkHealth.isDead && monkHealth.currentHealth > 0;
         }
 
         return false;
@@ -254,9 +261,9 @@ public class Enemy_AI : MonoBehaviour
 
     private float GetDistanceToTarget()
     {
-        if (!TargetValido()) return float.MaxValue;
+        if (!TargetValido()) return Mathf.Infinity;
 
-        Collider2D targetCollider = currentTarget.GetComponent<Collider2D>();
+        Collider2D targetCollider = GetBestTargetCollider();
 
         if (targetCollider != null)
         {
@@ -267,49 +274,60 @@ public class Enemy_AI : MonoBehaviour
         return Vector2.Distance(transform.position, currentTarget.position);
     }
 
+    private Collider2D GetBestTargetCollider()
+    {
+        Collider2D[] colliders = currentTarget.GetComponents<Collider2D>();
+
+        foreach (Collider2D col in colliders)
+        {
+            if (col != null && col.enabled && !col.isTrigger)
+            {
+                return col;
+            }
+        }
+
+        foreach (Collider2D col in colliders)
+        {
+            if (col != null && col.enabled)
+            {
+                return col;
+            }
+        }
+
+        return null;
+    }
+
     private bool TargetInAttackRange()
     {
         return GetDistanceToTarget() <= attackRange;
     }
 
-    private float GetDistanceToDetectionTarget()
-    {
-        if (!TargetValido()) return float.MaxValue;
-
-        Vector2 colliderCenter = (Vector2)transform.position + detectionCollider.offset;
-        return Vector2.Distance(colliderCenter, currentTarget.position);
-    }
-
-    private float GetDetectionRadius()
-    {
-        return detectionCollider.radius * Mathf.Max(
-            Mathf.Abs(transform.lossyScale.x),
-            Mathf.Abs(transform.lossyScale.y)
-        );
-    }
-
     private void FlipECollider(Vector2 direction)
     {
-        if (sr == null || detectionCollider == null) return;
+        if (sr == null) return;
 
         if (direction.x > 0.1f)
         {
             sr.flipX = false;
-
-            detectionCollider.offset = new Vector2(
-                Mathf.Abs(detectionCollider.offset.x),
-                detectionCollider.offset.y
-            );
+            FlipDetectionCollider(false);
         }
         else if (direction.x < -0.1f)
         {
             sr.flipX = true;
-
-            detectionCollider.offset = new Vector2(
-                -Mathf.Abs(detectionCollider.offset.x),
-                detectionCollider.offset.y
-            );
+            FlipDetectionCollider(true);
         }
+    }
+
+    private void FlipDetectionCollider(bool versoSinistra)
+    {
+        if (detectionCollider == null) return;
+
+        float x = Mathf.Abs(detectionCollider.offset.x);
+
+        detectionCollider.offset = new Vector2(
+            versoSinistra ? -x : x,
+            detectionCollider.offset.y
+        );
     }
 
     private void ReturnBase()
@@ -385,13 +403,9 @@ public class Enemy_AI : MonoBehaviour
         {
             TransizioneA(EnemyState.Attack);
         }
-        else if (GetDistanceToDetectionTarget() <= GetDetectionRadius())
-        {
-            TransizioneA(EnemyState.Chasing);
-        }
         else
         {
-            TransizioneA(EnemyState.Idle);
+            TransizioneA(EnemyState.Chasing);
         }
     }
 

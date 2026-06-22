@@ -12,6 +12,7 @@ public class MonkHealth : MonoBehaviour
     public static event Action<MonkHealth> OnAnyMonkDied;
 
     public bool isDead { get; private set; }
+    public bool IsDead => isDead;
 
     private Rigidbody2D rb;
     private Collider2D col;
@@ -33,29 +34,33 @@ public class MonkHealth : MonoBehaviour
         currentHealth -= amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
 
-        if(currentHealth <= 0)
+        if (currentHealth <= 0)
         {
             Die();
         }
     }
 
-
     private void Die()
     {
         isDead = true;
-        if(rb != null)
+
+        if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
         }
-        if(col != null)
+
+        if (col != null)
         {
             col.enabled = false;
         }
-        if(anim != null)
+
+        if (anim != null)
         {
             anim.SetBool("IsWalking", false);
         }
+
         OnAnyMonkDied?.Invoke(this);
+
         gameObject.SetActive(false);
     }
 }

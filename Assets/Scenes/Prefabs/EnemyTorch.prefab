@@ -86,7 +86,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 10
   m_MaskInteraction: 0
   m_Sprite: {fileID: -4230181108591323607, guid: d0dcf87611cf95549a51bebfca4f593b, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -211,7 +211,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy_Movement
   currentState: 0
-  player: {fileID: 0}
+  playerTag: Player
+  npcTag: NPC
+  intervalloRicercaTarget: 0.25
+  raggioAggro: 30
 --- !u!95 &472512864227879600
 Animator:
   serializedVersion: 7

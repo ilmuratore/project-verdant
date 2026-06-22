@@ -1,8 +1,6 @@
 using System;
-using UnityEditorInternal;
 using UnityEngine;
-using UnityEngine.LightTransport;
-
+using UnityEngine.InputSystem;
 
 public enum QuestState
 {
@@ -14,7 +12,6 @@ public enum QuestState
 
 public class QuestManager : MonoBehaviour
 {
-    
     public static QuestManager Instance { get; private set; }
 
     [Header("Quest attiva")]
@@ -22,6 +19,10 @@ public class QuestManager : MonoBehaviour
 
     [Header("Riferimenti")]
     public EnemySpawner spawner;
+
+    [Header("Avvio quest")]
+    public bool avviaConTasto = true;
+    public Key tastoAvvioQuest = Key.T;
 
     [Header("Runtime")]
     [SerializeField] private QuestState stato = QuestState.NonIniziata;
@@ -37,27 +38,34 @@ public class QuestManager : MonoBehaviour
     public QuestState Stato => stato;
     public int NemiciUccisi => nemiciUccisi;
     public int NemiciTotali => questAttiva != null ? questAttiva.TotaleNemici : 0;
-
     public int MonaciTotali => monaciDaProteggere != null ? monaciDaProteggere.Length : 0;
-
     public int MonaciMorti => monaciMorti;
-
     public int MonaciSalvi => Mathf.Max(0, MonaciTotali - monaciMorti);
+
     private void Awake()
     {
-        if(Instance != null && Instance != this)
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
+
         Instance = this;
     }
 
-
     private void Update()
     {
-        
+        if (!avviaConTasto) return;
+        if (Keyboard.current == null) return;
+
+        var keyControl = Keyboard.current[tastoAvvioQuest];
+
+        if (keyControl != null && keyControl.wasPressedThisFrame)
+        {
+            IniziaQuest();
+        }
     }
+
     private void OnEnable()
     {
         EnemyStats.OnAnyEnemyDied += GestisciNemicoUcciso;
@@ -73,36 +81,39 @@ public class QuestManager : MonoBehaviour
     public void IniziaQuest()
     {
         if (stato != QuestState.NonIniziata) return;
-        if(questAttiva == null)
+
+        if (questAttiva == null)
         {
-            Debug.LogWarning("Nessun QuestData assegnata");
+            Debug.LogWarning("Nessun QuestData assegnata.");
             return;
         }
+
         monaciDaProteggere = FindObjectsByType<MonkHealth>(FindObjectsSortMode.None);
+
         stato = QuestState.InCorso;
         nemiciUccisi = 0;
         monaciMorti = 0;
 
-        if(spawner != null)
+        if (spawner != null)
         {
             spawner.AvviaQuest(questAttiva);
         }
         else
         {
-            Debug.LogWarning("EnemySpawner non assegnato");
+            Debug.LogWarning("EnemySpawner non assegnato.");
         }
 
         NotificaAggiornamento();
-
     }
 
     private void GestisciNemicoUcciso(EnemyStats nemico)
     {
         if (stato != QuestState.InCorso) return;
+
         nemiciUccisi++;
         NotificaAggiornamento();
 
-        if(nemiciUccisi >= NemiciTotali)
+        if (nemiciUccisi >= NemiciTotali && monaciMorti == 0)
         {
             CompletaQuest();
         }
@@ -111,10 +122,9 @@ public class QuestManager : MonoBehaviour
     private void GestisciMonacoMorto(MonkHealth monaco)
     {
         if (stato != QuestState.InCorso) return;
+
         monaciMorti++;
-
         NotificaAggiornamento();
-
         FallisciQuest();
     }
 
@@ -124,37 +134,38 @@ public class QuestManager : MonoBehaviour
 
         stato = QuestState.Completata;
 
+        if (spawner != null)
+        {
+            spawner.FermaSpawner(false);
+        }
+
         PlayerStats ps = FindFirstObjectByType<PlayerStats>();
-        if(ps != null && questAttiva != null)
+        if (ps != null && questAttiva != null)
         {
             ps.AddXp(questAttiva.xpRicompensa);
         }
-        OnQuestCompletata?.Invoke();
 
+        OnQuestCompletata?.Invoke();
         NotificaAggiornamento();
     }
 
-    private void FallisciQuest() 
+    private void FallisciQuest()
     {
         if (stato != QuestState.InCorso) return;
 
         stato = QuestState.Fallita;
 
-        if(spawner != null)
+        if (spawner != null)
         {
             spawner.FermaSpawner(true);
         }
+
         OnQuestFallita?.Invoke();
         NotificaAggiornamento();
     }
 
-
     private void NotificaAggiornamento()
     {
-        if(OnQuestCompletata != null)
-        {
-            OnQuestAggiornata.Invoke();
-        }
+        OnQuestAggiornata?.Invoke();
     }
-
 }

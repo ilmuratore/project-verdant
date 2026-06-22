@@ -27,7 +27,6 @@ public class NPC_AI : MonoBehaviour
     [Header("Ostacoli")]
     [Tooltip("Layer della Tilemap, case, muri, ostacoli.")]
     public LayerMask obstacleLayer;
-
     public float obstacleCheckRadius = 0.18f;
     public float obstacleCheckDistance = 0.25f;
 
@@ -132,8 +131,7 @@ public class NPC_AI : MonoBehaviour
 
     private bool MonkMorto()
     {
-        if (health == null) return false;
-        return health.isDead;
+        return health != null && health.isDead;
     }
 
     private bool MovimentoGestitoDaSurvivor()
@@ -215,6 +213,8 @@ public class NPC_AI : MonoBehaviour
 
     private bool PuntoLibero(Vector2 punto)
     {
+        if (obstacleLayer.value == 0) return true;
+
         Collider2D hit = Physics2D.OverlapCircle(
             punto,
             obstacleCheckRadius,
@@ -226,6 +226,8 @@ public class NPC_AI : MonoBehaviour
 
     private bool DirezioneLibera(Vector2 direzione)
     {
+        if (obstacleLayer.value == 0) return true;
+
         RaycastHit2D hit = Physics2D.CircleCast(
             rb.position,
             obstacleCheckRadius,
@@ -241,7 +243,7 @@ public class NPC_AI : MonoBehaviour
     {
         if (dialogo == null)
         {
-            Debug.LogWarning("DialogueController non assegnato a NPC");
+            Debug.LogWarning("DialogueController non assegnato a NPC.");
             return;
         }
 

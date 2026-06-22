@@ -16,8 +16,8 @@ public class EnemySpawner : MonoBehaviour
     public Transform[] spawnPoints;
 
     [Header("Timing")]
-    [Tooltip("Pausa prima di far partire l'ondata successiva")]
-    public float pausaTraOndate = 3f;
+    [Tooltip("Pausa prima di far partire l'ondata successiva.")]
+    public float pausaTraOndate = 1.5f;
 
     [Header("State")]
     [SerializeField] private SpawnerState stato = SpawnerState.Inattivo;
@@ -44,39 +44,52 @@ public class EnemySpawner : MonoBehaviour
 
         occupiedPoints.Clear();
 
-        StartCoroutine(GestisciOndate());
+        if (routineOndate != null)
+        {
+            StopCoroutine(routineOndate);
+        }
+
+        routineOndate = StartCoroutine(GestisciOndate());
     }
 
     public void FermaSpawner(bool distruggiNemiciSpawnati)
     {
-        if(routineOndate != null)
+        if (routineOndate != null)
         {
             StopCoroutine(routineOndate);
             routineOndate = null;
         }
+
         if (distruggiNemiciSpawnati)
         {
-            foreach(var coppia in occupiedPoints)
+            foreach (var coppia in occupiedPoints)
             {
-                if(coppia.Value != null)
+                if (coppia.Value != null)
                 {
                     Destroy(coppia.Value);
                 }
             }
         }
+
         occupiedPoints.Clear();
         stato = SpawnerState.Inattivo;
     }
 
     private IEnumerator GestisciOndate()
     {
-        while (indiceOndataCorrente < quest.ondate.Count)
+        while (stato == SpawnerState.InCorso && indiceOndataCorrente < quest.ondate.Count)
         {
             Ondata ondata = quest.ondate[indiceOndataCorrente];
 
             SpawnaOndata(ondata);
 
-            yield return new WaitUntil(() => OndataAzzerata());
+            yield return new WaitUntil(() => stato != SpawnerState.InCorso || OndataAzzerata());
+
+            if (stato != SpawnerState.InCorso)
+            {
+                routineOndate = null;
+                yield break;
+            }
 
             indiceOndataCorrente++;
 
@@ -87,6 +100,7 @@ public class EnemySpawner : MonoBehaviour
         }
 
         stato = SpawnerState.Completato;
+        routineOndate = null;
     }
 
     private void SpawnaOndata(Ondata ondata)
@@ -159,7 +173,6 @@ public class EnemySpawner : MonoBehaviour
     private bool OndataAzzerata()
     {
         CleanEnemyList();
-
         return occupiedPoints.Count == 0;
     }
 
