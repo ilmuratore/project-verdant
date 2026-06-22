@@ -11,8 +11,16 @@ public class Enemy_AI : MonoBehaviour
 {
     [SerializeField] protected EnemyState currentState = EnemyState.Idle;
 
-    [Header("Riferimenti")]
-    public Transform player;
+    [Header("Tag dei target")]
+    [SerializeField] private string playerTag = "Player";
+    [SerializeField] private string npcTag = "NPC";
+
+    [Header("Target dinamici")]
+    [Tooltip("Ogni quanto il nemico ricalcola il bersaglio più vicino tra Player e NPC.")]
+    public float intervalloRicercaTarget = 0.25f;
+
+    private Transform currentTarget;
+    private float timerRicercaTarget;
 
     private float attackRange = 0.6f;
     private float speed = 2f;
@@ -26,7 +34,7 @@ public class Enemy_AI : MonoBehaviour
 
     private Vector3 posizioneIniziale;
 
-    void Start()
+    private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         enemyAnim = GetComponent<Animator>();
@@ -34,7 +42,6 @@ public class Enemy_AI : MonoBehaviour
         detectionCollider = GetComponent<CircleCollider2D>();
         stats = GetComponent<EnemyStats>();
 
-        // Carica i valori dallo ScriptableObject
         if (stats != null && stats.data != null)
         {
             attackRange = stats.data.attackRange;
@@ -43,13 +50,16 @@ public class Enemy_AI : MonoBehaviour
         }
 
         posizioneIniziale = transform.position;
+        currentTarget = TrovaTargetPiuVicino();
 
         TransizioneA(EnemyState.Idle);
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
-        if (!PlayerValido())
+        AggiornaTargetSeNecessario();
+
+        if (!TargetValido())
         {
             VaiInIdle();
             return;
@@ -57,18 +67,25 @@ public class Enemy_AI : MonoBehaviour
 
         switch (currentState)
         {
-            case EnemyState.Idle: UpdateIdle(); break;
-            case EnemyState.Chasing: UpdateChasing(); break;
-            case EnemyState.Attack: UpdateAttack(); break;
+            case EnemyState.Idle:
+                UpdateIdle();
+                break;
+
+            case EnemyState.Chasing:
+                UpdateChasing();
+                break;
+
+            case EnemyState.Attack:
+                UpdateAttack();
+                break;
         }
     }
-
 
     private void UpdateIdle()
     {
         SetRunning(false);
 
-        if (GetDistanceToDetection() <= GetDetectionRadius())
+        if (GetDistanceToDetectionTarget() <= GetDetectionRadius())
         {
             TransizioneA(EnemyState.Chasing);
             return;
@@ -79,19 +96,19 @@ public class Enemy_AI : MonoBehaviour
 
     private void UpdateChasing()
     {
-        if (GetDistanceToDetection() > GetDetectionRadius())
+        if (GetDistanceToDetectionTarget() > GetDetectionRadius())
         {
             TransizioneA(EnemyState.Idle);
             return;
         }
 
-        Vector2 direction = (player.position - transform.position).normalized;
+        Vector2 direction = (currentTarget.position - transform.position).normalized;
 
         rb.linearVelocity = direction * speed;
         SetRunning(true);
         FlipECollider(direction);
 
-        if (GetDistanceToPlayer() <= attackRange)
+        if (TargetInAttackRange())
         {
             TransizioneA(EnemyState.Attack);
         }
@@ -102,17 +119,32 @@ public class Enemy_AI : MonoBehaviour
         rb.linearVelocity = Vector2.zero;
         SetRunning(false);
 
-        Vector2 direction = (player.position - transform.position).normalized;
+        if (!TargetInAttackRange())
+        {
+            if (GetDistanceToDetectionTarget() <= GetDetectionRadius())
+            {
+                TransizioneA(EnemyState.Chasing);
+            }
+            else
+            {
+                TransizioneA(EnemyState.Idle);
+            }
+
+            return;
+        }
+
+        Vector2 direction = (currentTarget.position - transform.position).normalized;
         FlipECollider(direction);
     }
-
 
     private void TransizioneA(EnemyState nuovo)
     {
         currentState = nuovo;
 
         if (nuovo == EnemyState.Idle || nuovo == EnemyState.Attack)
+        {
             rb.linearVelocity = Vector2.zero;
+        }
 
         if (nuovo == EnemyState.Attack)
         {
@@ -134,24 +166,118 @@ public class Enemy_AI : MonoBehaviour
 
     private void SetRunning(bool running)
     {
-        enemyAnim.SetBool("IsRunning", running);
+        if (enemyAnim != null)
+        {
+            enemyAnim.SetBool("IsRunning", running);
+        }
     }
 
-    private bool PlayerValido()
+    private void AggiornaTargetSeNecessario()
     {
-        return player != null && player.gameObject.activeInHierarchy;
+        timerRicercaTarget += Time.fixedDeltaTime;
+
+        if (timerRicercaTarget < intervalloRicercaTarget && TargetValido())
+        {
+            return;
+        }
+
+        timerRicercaTarget = 0f;
+        currentTarget = TrovaTargetPiuVicino();
     }
 
-
-    private float GetDistanceToPlayer()
+    private Transform TrovaTargetPiuVicino()
     {
-        return Vector2.Distance(transform.position, player.position);
+        Transform migliore = null;
+        float distanzaMigliore = float.MaxValue;
+
+        GameObject playerObj = GameObject.FindGameObjectWithTag(playerTag);
+        ValutaTarget(playerObj, ref migliore, ref distanzaMigliore);
+
+        GameObject[] npcObjects = GameObject.FindGameObjectsWithTag(npcTag);
+
+        foreach (GameObject npc in npcObjects)
+        {
+            ValutaTarget(npc, ref migliore, ref distanzaMigliore);
+        }
+
+        return migliore;
     }
 
-    private float GetDistanceToDetection()
+    private void ValutaTarget(GameObject targetObj, ref Transform migliore, ref float distanzaMigliore)
     {
+        if (targetObj == null) return;
+        if (!targetObj.activeInHierarchy) return;
+
+        Transform targetTransform = targetObj.transform;
+
+        if (!TargetVivo(targetTransform)) return;
+
+        float distanza = Vector2.Distance(transform.position, targetTransform.position);
+
+        if (distanza < distanzaMigliore)
+        {
+            distanzaMigliore = distanza;
+            migliore = targetTransform;
+        }
+    }
+
+    private bool TargetValido()
+    {
+        return currentTarget != null &&
+               currentTarget.gameObject.activeInHierarchy &&
+               TargetVivo(currentTarget);
+    }
+
+    private bool TargetVivo(Transform target)
+    {
+        if (target == null) return false;
+
+        if (target.CompareTag(playerTag))
+        {
+            PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
+
+            return playerHealth != null &&
+                   playerHealth.currentHealth > 0;
+        }
+
+        if (target.CompareTag(npcTag))
+        {
+            MonkHealth monkHealth = target.GetComponent<MonkHealth>();
+
+            return monkHealth != null &&
+                   !monkHealth.isDead &&
+                   monkHealth.currentHealth > 0;
+        }
+
+        return false;
+    }
+
+    private float GetDistanceToTarget()
+    {
+        if (!TargetValido()) return float.MaxValue;
+
+        Collider2D targetCollider = currentTarget.GetComponent<Collider2D>();
+
+        if (targetCollider != null)
+        {
+            Vector2 closestPoint = targetCollider.ClosestPoint(transform.position);
+            return Vector2.Distance(transform.position, closestPoint);
+        }
+
+        return Vector2.Distance(transform.position, currentTarget.position);
+    }
+
+    private bool TargetInAttackRange()
+    {
+        return GetDistanceToTarget() <= attackRange;
+    }
+
+    private float GetDistanceToDetectionTarget()
+    {
+        if (!TargetValido()) return float.MaxValue;
+
         Vector2 colliderCenter = (Vector2)transform.position + detectionCollider.offset;
-        return Vector2.Distance(colliderCenter, player.position);
+        return Vector2.Distance(colliderCenter, currentTarget.position);
     }
 
     private float GetDetectionRadius()
@@ -162,12 +288,14 @@ public class Enemy_AI : MonoBehaviour
         );
     }
 
-
     private void FlipECollider(Vector2 direction)
     {
+        if (sr == null || detectionCollider == null) return;
+
         if (direction.x > 0.1f)
         {
             sr.flipX = false;
+
             detectionCollider.offset = new Vector2(
                 Mathf.Abs(detectionCollider.offset.x),
                 detectionCollider.offset.y
@@ -176,13 +304,13 @@ public class Enemy_AI : MonoBehaviour
         else if (direction.x < -0.1f)
         {
             sr.flipX = true;
+
             detectionCollider.offset = new Vector2(
                 -Mathf.Abs(detectionCollider.offset.x),
                 detectionCollider.offset.y
             );
         }
     }
-
 
     private void ReturnBase()
     {
@@ -201,67 +329,77 @@ public class Enemy_AI : MonoBehaviour
             rb.linearVelocity = Vector2.zero;
             SetRunning(false);
 
-            detectionCollider.offset = new Vector2(
-                Mathf.Abs(detectionCollider.offset.x),
-                detectionCollider.offset.y
-            );
-            sr.flipX = false;
+            if (detectionCollider != null)
+            {
+                detectionCollider.offset = new Vector2(
+                    Mathf.Abs(detectionCollider.offset.x),
+                    detectionCollider.offset.y
+                );
+            }
+
+            if (sr != null)
+            {
+                sr.flipX = false;
+            }
         }
     }
 
-
     public void InflictDamage()
     {
-        if (!CanInflictDamage())
+        if (!CanInflictDamage()) return;
+
+        if (currentTarget.CompareTag(playerTag))
+        {
+            PlayerHealth playerHealth = currentTarget.GetComponent<PlayerHealth>();
+
+            if (playerHealth != null)
+            {
+                playerHealth.ChangeHealth(-damage);
+            }
+
             return;
+        }
 
-        PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
-        if (playerHealth == null) return;
-        if (playerHealth.currentHealth <= 0) return;
+        if (currentTarget.CompareTag(npcTag))
+        {
+            MonkHealth monkHealth = currentTarget.GetComponent<MonkHealth>();
 
-        playerHealth.ChangeHealth(-damage);
+            if (monkHealth != null)
+            {
+                monkHealth.TakeDamage(damage);
+            }
+        }
     }
 
     public void EndAttack()
     {
-        if (!PlayerValido())
+        AggiornaTargetSeNecessario();
+
+        if (!TargetValido())
         {
-            currentState = EnemyState.Idle;
+            TransizioneA(EnemyState.Idle);
             return;
         }
 
-        if (GetDistanceToPlayer() <= attackRange)
+        if (TargetInAttackRange())
         {
             TransizioneA(EnemyState.Attack);
         }
-        else if (GetDistanceToDetection() <= GetDetectionRadius())
+        else if (GetDistanceToDetectionTarget() <= GetDetectionRadius())
         {
             TransizioneA(EnemyState.Chasing);
         }
         else
         {
-            currentState = EnemyState.Idle;
+            TransizioneA(EnemyState.Idle);
         }
     }
 
     private bool CanInflictDamage()
     {
-        if (!PlayerValido())
-            return false;
-
-        if (currentState != EnemyState.Attack)
-            return false;
-
-        if (GetDistanceToPlayer() > attackRange)
-            return false;
-
-        PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
-
-        if (playerHealth == null)
-            return false;
-
-        if (playerHealth.currentHealth <= 0)
-            return false;
+        if (!TargetValido()) return false;
+        if (currentState != EnemyState.Attack) return false;
+        if (!TargetInAttackRange()) return false;
 
         return true;
     }

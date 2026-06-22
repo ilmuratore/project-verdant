@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsData
   attaccoBase: 1
   difesaBase: 1
-  vitaBase: 5
+  vitaBase: 10
   incrementoAttaco: 1
   incrementoDifesa: 1
   incrementoVita: 2
   xpBaseLevelUp: 5
   xpCrescita: 1.5
   puntiPerLivello: 1
-  velocita: 5
-  dodgeSpeed: 12
-  dodgeDuration: 0.2
-  dodgeCooldown: 0.7
+  velocita: 3.2
+  dodgeSpeed: 13
+  dodgeDuration: 0.3
+  dodgeCooldown: 0.8
   damage: 1
   attackRange: 1

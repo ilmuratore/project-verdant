@@ -13,18 +13,19 @@ MonoBehaviour:
   m_Name: QuestVillaggio
   m_EditorClassIdentifier: Assembly-CSharp::QuestData
   titolo: Il villaggio invaso
-  descrizione: Hanno invaso il villaggio! Elimina tutti i nemici.
-  xpRicompensa: 1000
+  descrizione: "Hanno invaso il villaggio!\n Elimina tutti i nemici prima che tutti
+    i monaci vengano uccisi !"
+  xpRicompensa: 100
   ondate:
   - nome: Prima ondata
-    numeroNemici: 5
+    numeroNemici: 3
     ondataFinale: 0
   - nome: Seconda ondata
-    numeroNemici: 7
+    numeroNemici: 5
     ondataFinale: 0
   - nome: Terza ondata
-    numeroNemici: 11
+    numeroNemici: 7
     ondataFinale: 0
   - nome: Ondata finale
-    numeroNemici: 15
+    numeroNemici: 9
     ondataFinale: 1

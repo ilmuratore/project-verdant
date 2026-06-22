@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: EnemyStats_Default
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStatsData
   nomeNemico: Nemico
-  maxHealth: 3
+  maxHealth: 5
   damage: 1
-  attackRange: 0.6
-  speed: 2
-  xpReward: 100
+  attackRange: 1
+  speed: 2.8
+  xpReward: 3

@@ -8,16 +8,16 @@ public class EnemyStatsData : ScriptableObject
     public string nomeNemico = "Nemico";
 
     [Header("Vita")]
-    public int maxHealth = 3;
+    public int maxHealth = 5;
 
     [Header("Combattimento")]
     public int damage = 1;
-    public float attackRange = 0.6f;
+    public float attackRange = 1f;
 
     [Header("Movimento")]
-    public float speed = 2f;
+    public float speed = 2.8f;
 
     [Header("Ricompensa")]
-    public int xpReward = 2;
+    public int xpReward = 3;
 }
 

@@ -15,10 +15,15 @@ public class QuestUI : MonoBehaviour
     public GameObject pannelloVittoria;
     public TMP_Text testoVittoria;
 
+    [Header("Pannello sconfitta (al centro)")]
+    public GameObject pannelloSconfitta;
+    public TMP_Text testoSconfitta;
+
     void Start()
     {
         if (pannelloQuest != null) pannelloQuest.SetActive(false);
         if (pannelloVittoria != null) pannelloVittoria.SetActive(false);
+        if (pannelloSconfitta != null) pannelloSconfitta.SetActive(false);
     }
 
     private void OnEnable()
@@ -27,6 +32,7 @@ public class QuestUI : MonoBehaviour
         {
             questManager.OnQuestAggiornata += Aggiorna;
             questManager.OnQuestCompletata += MostraVittoria;
+            questManager.OnQuestFallita += MostraSconfitta;
         }
     }
 
@@ -36,6 +42,7 @@ public class QuestUI : MonoBehaviour
         {
             questManager.OnQuestAggiornata -= Aggiorna;
             questManager.OnQuestCompletata -= MostraVittoria;
+            questManager.OnQuestFallita -= MostraSconfitta;
         }
     }
 
@@ -52,7 +59,9 @@ public class QuestUI : MonoBehaviour
 
             if (avanzamentoQuest != null)
                 avanzamentoQuest.text =
-                    "Nemici: " + questManager.NemiciUccisi + " / " + questManager.NemiciTotali;
+                    "Nemici: " + questManager.NemiciUccisi + " / " + questManager.NemiciTotali + "\n" +
+                    "Monaci Salvi: " + questManager.MonaciSalvi + " / " + questManager.MonaciTotali;
+
         }
         else if (questManager.Stato == QuestState.Completata)
         {
@@ -67,7 +76,25 @@ public class QuestUI : MonoBehaviour
         if (testoVittoria != null && questManager != null && questManager.questAttiva != null)
         {
             testoVittoria.text =
-                "Quest completata!\n+" + questManager.questAttiva.xpRicompensa + " XP";
+                "Quest completata!\n+" + 
+                "Hai protetto tutti i monaci.\n" +
+                " + " + questManager.questAttiva.xpRicompensa + " XP";
+
+        }
+    }
+
+    private void MostraSconfitta()
+    {
+        if (pannelloQuest != null) pannelloQuest.SetActive(false);
+        if (pannelloVittoria != null) pannelloVittoria.SetActive(false);
+        if (pannelloSconfitta != null) pannelloSconfitta.SetActive(true);
+
+        if(testoSconfitta != null)
+        {
+            testoSconfitta.text =
+                "Quest Fallita!\n" +
+                "Un monaco é stato ucciso.\n" +
+                "Difendi meglio e riprova!."; 
         }
     }
 }

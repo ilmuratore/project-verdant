@@ -1,9 +1,5 @@
-using Mono.Cecil.Cil;
-using Unity.VisualScripting;
-using UnityEditor.Tilemaps;
 using UnityEngine;
 using UnityEngine.InputSystem;
-
 
 public enum NPCstate
 {
@@ -15,10 +11,10 @@ public enum NPCstate
 public class NPC_AI : MonoBehaviour
 {
     [Header("Comportamento")]
-    [Tooltip("Se true questo NPC passeggia;")]
+    [Tooltip("Se true questo NPC passeggia.")]
     public bool puoPasseggiare = true;
 
-    [Tooltip("Se true questo NPC puo dare quest")]
+    [Tooltip("Se true questo NPC può dare quest.")]
     public bool daQuest = false;
 
     [Header("Passeggiata")]
@@ -26,11 +22,18 @@ public class NPC_AI : MonoBehaviour
     public float raggioMovimento = 2f;
     public float attesaMin = 1.5f;
     public float attesaMax = 3f;
+    public float distanzaArrivo = 0.08f;
+
+    [Header("Ostacoli")]
+    [Tooltip("Layer della Tilemap, case, muri, ostacoli.")]
+    public LayerMask obstacleLayer;
+
+    public float obstacleCheckRadius = 0.18f;
+    public float obstacleCheckDistance = 0.25f;
 
     [Header("Interazione")]
     public float raggioInterazione = 1.5f;
     public Transform player;
-
 
     [Header("Dialogo")]
     public DialogueController dialogo;
@@ -40,29 +43,55 @@ public class NPC_AI : MonoBehaviour
     private Rigidbody2D rb;
     private Animator anim;
     private SpriteRenderer sr;
+    private MonkSurvivorAI survivorAI;
+    private MonkHealth health;
 
     private Vector3 puntoDiPartenza;
     private Vector2 destinazione;
     private float attesaCorrente;
     private float timer;
 
-
-    void Start()
+    private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         sr = GetComponent<SpriteRenderer>();
+        survivorAI = GetComponent<MonkSurvivorAI>();
+        health = GetComponent<MonkHealth>();
 
         puntoDiPartenza = transform.position;
-        TransizioneA(NPCstate.Idle);
 
+        if (player == null)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+
+            if (playerObj != null)
+            {
+                player = playerObj.transform;
+            }
+        }
+
+        TransizioneA(NPCstate.Idle);
     }
 
-    void Update()
+    private void Update()
     {
+        if (MonkMorto())
+        {
+            TransizioneA(NPCstate.Idle);
+            return;
+        }
+
+        if (MovimentoGestitoDaSurvivor())
+        {
+            currentState = NPCstate.Idle;
+            timer = 0f;
+            return;
+        }
+
         if (currentState != NPCstate.Talking && daQuest && PlayerVicino())
         {
-            if (Keyboard.current.eKey.wasPressedThisFrame)
+            if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
             {
                 IniziaDialogo();
             }
@@ -70,40 +99,82 @@ public class NPC_AI : MonoBehaviour
 
         switch (currentState)
         {
-            case NPCstate.Idle: UpdateIdle(); break;
-            case NPCstate.Wandering: UpdateWandering(); break;
-            case NPCstate.Talking: break;
+            case NPCstate.Idle:
+                UpdateIdle();
+                break;
+
+            case NPCstate.Wandering:
+                break;
+
+            case NPCstate.Talking:
+                break;
         }
     }
 
+    private void FixedUpdate()
+    {
+        if (MonkMorto())
+        {
+            StopMovement();
+            return;
+        }
+
+        if (MovimentoGestitoDaSurvivor())
+        {
+            return;
+        }
+
+        if (currentState == NPCstate.Wandering)
+        {
+            UpdateWanderingFisico();
+        }
+    }
+
+    private bool MonkMorto()
+    {
+        if (health == null) return false;
+        return health.isDead;
+    }
+
+    private bool MovimentoGestitoDaSurvivor()
+    {
+        return survivorAI != null && survivorAI.IsControllingMovement;
+    }
 
     private void UpdateIdle()
     {
-        SetWalking(false);
+        StopMovement();
 
         if (!puoPasseggiare) return;
 
         timer += Time.deltaTime;
-        if(timer >= attesaCorrente)
+
+        if (timer >= attesaCorrente)
         {
             ScegliNuovaDestinazione();
             TransizioneA(NPCstate.Wandering);
         }
     }
 
-    private void UpdateWandering()
+    private void UpdateWanderingFisico()
     {
-        Vector2 posizione = transform.position;
-        Vector2 verso = (destinazione - posizione);
+        Vector2 posizione = rb.position;
+        Vector2 verso = destinazione - posizione;
 
-        if(verso.magnitude <= 0.05f)
+        if (verso.magnitude <= distanzaArrivo)
         {
-            rb.linearVelocity = Vector2.zero;
             TransizioneA(NPCstate.Idle);
             return;
         }
 
         Vector2 direzione = verso.normalized;
+
+        if (!DirezioneLibera(direzione))
+        {
+            TransizioneA(NPCstate.Idle);
+            return;
+        }
+
         rb.linearVelocity = direzione * velocita;
         SetWalking(true);
         Flip(direzione);
@@ -112,32 +183,68 @@ public class NPC_AI : MonoBehaviour
     private void TransizioneA(NPCstate nuovo)
     {
         currentState = nuovo;
-        if(nuovo == NPCstate.Idle)
+
+        if (nuovo == NPCstate.Idle)
         {
-            rb.linearVelocity = Vector2.zero;
+            StopMovement();
             timer = 0f;
             attesaCorrente = Random.Range(attesaMin, attesaMax);
-            SetWalking(false);
-        } else if( nuovo == NPCstate.Talking)
+        }
+        else if (nuovo == NPCstate.Talking)
         {
-            rb.linearVelocity = Vector2.zero;
-            SetWalking(false);
+            StopMovement();
         }
     }
 
     private void ScegliNuovaDestinazione()
     {
-        Vector2 offset = Random.insideUnitCircle * raggioMovimento;
-        destinazione = (Vector2)puntoDiPartenza + offset;
+        for (int i = 0; i < 10; i++)
+        {
+            Vector2 offset = Random.insideUnitCircle * raggioMovimento;
+            Vector2 nuovaDestinazione = (Vector2)puntoDiPartenza + offset;
+
+            if (PuntoLibero(nuovaDestinazione))
+            {
+                destinazione = nuovaDestinazione;
+                return;
+            }
+        }
+
+        destinazione = transform.position;
+    }
+
+    private bool PuntoLibero(Vector2 punto)
+    {
+        Collider2D hit = Physics2D.OverlapCircle(
+            punto,
+            obstacleCheckRadius,
+            obstacleLayer
+        );
+
+        return hit == null;
+    }
+
+    private bool DirezioneLibera(Vector2 direzione)
+    {
+        RaycastHit2D hit = Physics2D.CircleCast(
+            rb.position,
+            obstacleCheckRadius,
+            direzione,
+            obstacleCheckDistance,
+            obstacleLayer
+        );
+
+        return hit.collider == null;
     }
 
     private void IniziaDialogo()
     {
-        if(dialogo == null)
+        if (dialogo == null)
         {
             Debug.LogWarning("DialogueController non assegnato a NPC");
             return;
         }
+
         TransizioneA(NPCstate.Talking);
         dialogo.ApriDialogo(this);
     }
@@ -150,24 +257,44 @@ public class NPC_AI : MonoBehaviour
     private bool PlayerVicino()
     {
         if (player == null) return false;
+
         return Vector2.Distance(transform.position, player.position) <= raggioInterazione;
+    }
+
+    private void StopMovement()
+    {
+        rb.linearVelocity = Vector2.zero;
+        SetWalking(false);
     }
 
     private void SetWalking(bool walking)
     {
-        if (anim != null) anim.SetBool("IsWalking", walking);
+        if (anim != null)
+        {
+            anim.SetBool("IsWalking", walking);
+        }
     }
 
     private void Flip(Vector2 direzione)
     {
         if (sr == null) return;
-        if (direzione.x > 0.1f) sr.flipX = false;
-        else if (direzione.x < 0.1f) sr.flipX = true;
+
+        if (direzione.x > 0.1f)
+        {
+            sr.flipX = false;
+        }
+        else if (direzione.x < -0.1f)
+        {
+            sr.flipX = true;
+        }
     }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, raggioInterazione);
+
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, raggioMovimento);
     }
 }

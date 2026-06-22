@@ -8,7 +8,8 @@ public enum QuestState
 {
     NonIniziata,
     InCorso,
-    Completata
+    Completata,
+    Fallita
 }
 
 public class QuestManager : MonoBehaviour
@@ -25,14 +26,23 @@ public class QuestManager : MonoBehaviour
     [Header("Runtime")]
     [SerializeField] private QuestState stato = QuestState.NonIniziata;
     [SerializeField] private int nemiciUccisi = 0;
+    [SerializeField] private int monaciMorti = 0;
+
+    private MonkHealth[] monaciDaProteggere;
 
     public event Action OnQuestAggiornata;
     public event Action OnQuestCompletata;
+    public event Action OnQuestFallita;
 
     public QuestState Stato => stato;
     public int NemiciUccisi => nemiciUccisi;
     public int NemiciTotali => questAttiva != null ? questAttiva.TotaleNemici : 0;
 
+    public int MonaciTotali => monaciDaProteggere != null ? monaciDaProteggere.Length : 0;
+
+    public int MonaciMorti => monaciMorti;
+
+    public int MonaciSalvi => Mathf.Max(0, MonaciTotali - monaciMorti);
     private void Awake()
     {
         if(Instance != null && Instance != this)
@@ -46,19 +56,18 @@ public class QuestManager : MonoBehaviour
 
     private void Update()
     {
-        if (UnityEngine.InputSystem.Keyboard.current.tKey.wasPressedThisFrame)
-        {
-            IniziaQuest();
-        }
+        
     }
     private void OnEnable()
     {
         EnemyStats.OnAnyEnemyDied += GestisciNemicoUcciso;
+        MonkHealth.OnAnyMonkDied += GestisciMonacoMorto;
     }
 
     private void OnDisable()
     {
         EnemyStats.OnAnyEnemyDied -= GestisciNemicoUcciso;
+        MonkHealth.OnAnyMonkDied -= GestisciMonacoMorto;
     }
 
     public void IniziaQuest()
@@ -69,13 +78,20 @@ public class QuestManager : MonoBehaviour
             Debug.LogWarning("Nessun QuestData assegnata");
             return;
         }
+        monaciDaProteggere = FindObjectsByType<MonkHealth>(FindObjectsSortMode.None);
         stato = QuestState.InCorso;
         nemiciUccisi = 0;
+        monaciMorti = 0;
 
         if(spawner != null)
         {
             spawner.AvviaQuest(questAttiva);
         }
+        else
+        {
+            Debug.LogWarning("EnemySpawner non assegnato");
+        }
+
         NotificaAggiornamento();
 
     }
@@ -92,19 +108,43 @@ public class QuestManager : MonoBehaviour
         }
     }
 
+    private void GestisciMonacoMorto(MonkHealth monaco)
+    {
+        if (stato != QuestState.InCorso) return;
+        monaciMorti++;
+
+        NotificaAggiornamento();
+
+        FallisciQuest();
+    }
+
     private void CompletaQuest()
     {
+        if (stato != QuestState.InCorso) return;
+
         stato = QuestState.Completata;
-        PlayerStats ps = UnityEngine.Object.FindFirstObjectByType<PlayerStats>();
+
+        PlayerStats ps = FindFirstObjectByType<PlayerStats>();
         if(ps != null && questAttiva != null)
         {
             ps.AddXp(questAttiva.xpRicompensa);
         }
-        if(OnQuestCompletata != null)
-        {
-            OnQuestCompletata.Invoke();
+        OnQuestCompletata?.Invoke();
 
+        NotificaAggiornamento();
+    }
+
+    private void FallisciQuest() 
+    {
+        if (stato != QuestState.InCorso) return;
+
+        stato = QuestState.Fallita;
+
+        if(spawner != null)
+        {
+            spawner.FermaSpawner(true);
         }
+        OnQuestFallita?.Invoke();
         NotificaAggiornamento();
     }
 
