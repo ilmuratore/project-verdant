@@ -79,6 +79,8 @@ public class NewMonoBehaviourScript : MonoBehaviour
     public void CloseSettings()
     {
         if (settingsPanel != null) settingsPanel.SetActive(false);
+        if (pauseMenuPanel != null) pauseMenuPanel.SetActive(true);
+        if (levelSelectPanel != null) levelSelectPanel.SetActive(false);
     }
 
     public void OpenLevelSelect()
