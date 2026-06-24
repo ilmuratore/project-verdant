@@ -268,10 +268,10 @@ MonoBehaviour:
   playerDodgeClip: {fileID: 0}
   playerFootstepClip: {fileID: 0}
   playerHitClip: {fileID: 0}
-  enemyAttackClip: {fileID: 8300000, guid: 719a0d5f7a6f81641bac00cafce5b113, type: 3}
-  enemyHitClip: {fileID: 8300000, guid: ceb813db2edb4674c87acb1f3f6a76bb, type: 3}
-  enemyDeathClip: {fileID: 8300000, guid: 227389bcc16f0d5478a0b7b032a0ccb2, type: 3}
-  enemyFootstepClip: {fileID: 8300000, guid: ec7a27797acb1df4c989f60e7b6e5b68, type: 3}
+  enemyAttackClip: {fileID: 8300000, guid: 5fafcf7ff321e61498822d892401b088, type: 3}
+  enemyHitClip: {fileID: 8300000, guid: c31252fa1f50e714d844bec69c3aae8d, type: 3}
+  enemyDeathClip: {fileID: 8300000, guid: e33994fb986818c4189f6dd0328da8d0, type: 3}
+  enemyFootstepClip: {fileID: 8300000, guid: c7d09454a2388a24c918d25fd203155a, type: 3}
   specialClip: {fileID: 8300000, guid: 99a02a45ba06b5240b3d61704be9d0b2, type: 3}
   volumeScale: 0.5
   use2DSound: 1

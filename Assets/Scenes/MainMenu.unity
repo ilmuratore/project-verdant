@@ -4255,9 +4255,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneAudioController
   musicClip: {fileID: 8300000, guid: 79664926016e7d342bf311f318b16c45, type: 3}
-  ambientClip: {fileID: 8300000, guid: ab4d75114b5c88a4089aa2b14b38cb8b, type: 3}
+  ambientClip: {fileID: 0}
   playMusicOnStart: 1
-  playAmbientOnStart: 1
+  playAmbientOnStart: 0
 --- !u!4 &1562036103
 Transform:
   m_ObjectHideFlags: 0

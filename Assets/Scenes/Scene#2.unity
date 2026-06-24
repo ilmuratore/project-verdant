@@ -378,10 +378,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3add29711ec8ad49a39ebe871f34b87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimationSoundEvents
-  playerAttackClip: {fileID: 8300000, guid: fb1cafbe8627cff4aaca0359bce748cf, type: 3}
-  playerDodgeClip: {fileID: 8300000, guid: bb3b5361ba5e3a94ea22c3e0b92ccb3a, type: 3}
-  playerFootstepClip: {fileID: 8300000, guid: 0592310ed0e464b4085625996a876827, type: 3}
-  playerHitClip: {fileID: 8300000, guid: a449ba79380e3204096ac8690d3352db, type: 3}
+  playerAttackClip: {fileID: 8300000, guid: b364d5aee2cdbf6428c8be4f7532426b, type: 3}
+  playerDodgeClip: {fileID: 8300000, guid: 9bcfff0b9ed45a04d9d38e90da41e367, type: 3}
+  playerFootstepClip: {fileID: 8300000, guid: e5125afbd65571a4f9ee2d79132c9f89, type: 3}
+  playerHitClip: {fileID: 8300000, guid: d2baa4a98961c2f42b7189940b67f369, type: 3}
   enemyAttackClip: {fileID: 8300000, guid: 719a0d5f7a6f81641bac00cafce5b113, type: 3}
   enemyHitClip: {fileID: 8300000, guid: ceb813db2edb4674c87acb1f3f6a76bb, type: 3}
   enemyDeathClip: {fileID: 8300000, guid: 227389bcc16f0d5478a0b7b032a0ccb2, type: 3}
@@ -439,8 +439,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
   stats: {fileID: 68647600}
   currentHealth: 5
-  healthText: {fileID: 0}
-  healthTextAnim: {fileID: 0}
+  healthText: {fileID: 1942869}
+  healthTextAnim: {fileID: 1942871}
 --- !u!114 &68647603
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -51453,10 +51453,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1cd918607dd0a2b46a0e1e61755bc6fd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneAudioController
-  musicClip: {fileID: 8300000, guid: 457ff41f0cfefaa4fa270d096d678c70, type: 3}
-  ambientClip: {fileID: 8300000, guid: 04e5fc0d821945649a17132c127fc9e3, type: 3}
+  musicClip: {fileID: 8300000, guid: c71a4d0533be85c42906caa91bf2fcfe, type: 3}
+  ambientClip: {fileID: 0}
   playMusicOnStart: 1
-  playAmbientOnStart: 1
+  playAmbientOnStart: 0
 --- !u!4 &1837014375
 Transform:
   m_ObjectHideFlags: 0
