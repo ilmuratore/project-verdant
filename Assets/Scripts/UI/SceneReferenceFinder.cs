@@ -1,15 +1,11 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Utility used by UI managers to resolve scene instances even when menu/HUD objects are prefabs.
-/// It avoids using prefab assets from the Project window as runtime references.
-/// </summary>
 public static class SceneReferenceFinder
 {
     public static bool IsSceneInstance(GameObject obj)
     {
-        return obj != null && obj.scene.IsValid() && obj.scene.isLoaded;
+        return obj != null && obj.scene.IsValid() && obj.scene == SceneManager.GetActiveScene();
     }
 
     public static bool IsSceneInstance(Component component)
@@ -20,8 +16,9 @@ public static class SceneReferenceFinder
     public static GameObject ResolveSceneObject(GameObject current, Transform searchRoot, string objectName)
     {
         if (IsSceneInstance(current)) return current;
+        if (string.IsNullOrWhiteSpace(objectName)) return current;
 
-        if (searchRoot != null && IsSceneInstance(searchRoot.gameObject))
+        if (searchRoot != null)
         {
             Transform child = FindChildRecursive(searchRoot, objectName);
             if (child != null) return child.gameObject;
@@ -32,17 +29,17 @@ public static class SceneReferenceFinder
 
     public static Transform ResolveSceneTransform(Transform current, string objectName)
     {
-        if (IsSceneInstance(current)) return current;
-
+        if (current != null && current.gameObject.scene.IsValid()) return current;
         GameObject found = FindGameObjectInActiveScene(objectName);
         return found != null ? found.transform : null;
     }
 
     public static T ResolveComponentInChildren<T>(T current, Transform searchRoot, string objectName) where T : Component
     {
-        if (IsSceneInstance(current)) return current;
+        if (current != null && current.gameObject.scene.IsValid()) return current;
+        if (searchRoot == null) return FindComponentByObjectName<T>(objectName);
 
-        if (searchRoot != null && IsSceneInstance(searchRoot.gameObject))
+        if (!string.IsNullOrWhiteSpace(objectName))
         {
             Transform child = FindChildRecursive(searchRoot, objectName);
             if (child != null)
@@ -52,23 +49,27 @@ public static class SceneReferenceFinder
             }
         }
 
-        GameObject foundObject = FindGameObjectInActiveScene(objectName);
-        return foundObject != null ? foundObject.GetComponent<T>() : null;
+        return searchRoot.GetComponentInChildren<T>(true);
     }
 
     public static T FindComponentInActiveScene<T>() where T : Component
     {
         T[] all = Resources.FindObjectsOfTypeAll<T>();
+        Scene activeScene = SceneManager.GetActiveScene();
 
-        foreach (T component in all)
+        foreach (T item in all)
         {
-            if (IsSceneInstance(component))
-            {
-                return component;
-            }
+            if (item == null) continue;
+            if (item.gameObject.scene == activeScene) return item;
         }
 
         return null;
+    }
+
+    public static T FindComponentByObjectName<T>(string objectName) where T : Component
+    {
+        GameObject obj = FindGameObjectInActiveScene(objectName);
+        return obj != null ? obj.GetComponent<T>() : null;
     }
 
     public static GameObject FindGameObjectInActiveScene(string objectName)
@@ -76,12 +77,12 @@ public static class SceneReferenceFinder
         if (string.IsNullOrWhiteSpace(objectName)) return null;
 
         Scene activeScene = SceneManager.GetActiveScene();
-        if (!activeScene.IsValid()) return null;
-
         GameObject[] roots = activeScene.GetRootGameObjects();
 
         foreach (GameObject root in roots)
         {
+            if (root.name == objectName) return root;
+
             Transform found = FindChildRecursive(root.transform, objectName);
             if (found != null) return found.gameObject;
         }
@@ -93,13 +94,11 @@ public static class SceneReferenceFinder
     {
         if (parent == null || string.IsNullOrWhiteSpace(childName)) return null;
 
-        if (parent.name == childName) return parent;
-
-        for (int i = 0; i < parent.childCount; i++)
+        foreach (Transform child in parent)
         {
-            Transform child = parent.GetChild(i);
-            Transform found = FindChildRecursive(child, childName);
+            if (child.name == childName) return child;
 
+            Transform found = FindChildRecursive(child, childName);
             if (found != null) return found;
         }
 

@@ -1,39 +1,54 @@
 using System;
 using UnityEngine;
 
-public class EnemyStats : MonoBehaviour
+public class EnemyStats : MonoBehaviour, IDamageable
 {
-    [Header("Configurazione (ScriptableObject)")]
     public EnemyStatsData data;
-
-    [Header("Runtime")]
     public int currentHealth;
 
     public static event Action<EnemyStats> OnAnyEnemyDied;
 
+    [SerializeField] private float destroyDelay = 0.8f;
+
     private Animator anim;
     private Rigidbody2D rb;
     private Collider2D col;
-    private bool isDead = false;
+    private Enemy_AI ai;
+    private bool isDead;
 
     public int Damage => data != null ? data.damage : 1;
     public int XpReward => data != null ? data.xpReward : 2;
+    public bool IsDead => isDead;
+    public DamageableTeam Team => DamageableTeam.Enemy;
+    public Transform TargetTransform => transform;
+    public Collider2D HitCollider => col;
 
-    private void Start()
+    private void Awake()
     {
-        int maxHealth = (data != null) ? data.maxHealth : 3;
-        currentHealth = maxHealth;
-
         anim = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
+        ai = GetComponent<Enemy_AI>();
+    }
+
+    private void OnEnable()
+    {
+        int maxHealth = data != null ? data.maxHealth : 3;
+        currentHealth = maxHealth;
+        isDead = false;
+        DamageableRegistry.Register(this);
+    }
+
+    private void OnDisable()
+    {
+        DamageableRegistry.Unregister(this);
     }
 
     public void TakeDamage(int amount)
     {
-        if (isDead) return;
+        if (isDead || amount <= 0) return;
 
-        currentHealth -= amount;
+        currentHealth = Mathf.Clamp(currentHealth - amount, 0, data != null ? data.maxHealth : currentHealth);
 
         if (anim != null)
         {
@@ -41,47 +56,28 @@ public class EnemyStats : MonoBehaviour
             anim.SetTrigger("Hit");
         }
 
-        if (currentHealth <= 0)
-        {
-            Die();
-        }
+        if (currentHealth <= 0) Die();
     }
 
     private void Die()
     {
+        if (isDead) return;
+
         isDead = true;
 
-        PlayerStats ps = UnityEngine.Object.FindFirstObjectByType<PlayerStats>();
-        if (ps != null)
-        {
-            ps.AddXp(XpReward);
-        }
+        PlayerStats playerStats = FindFirstObjectByType<PlayerStats>();
+        if (playerStats != null) playerStats.AddXp(XpReward);
 
-        if (OnAnyEnemyDied != null)
-        {
-            OnAnyEnemyDied.Invoke(this);
-        }
+        OnAnyEnemyDied?.Invoke(this);
 
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector2.zero;
-        }
-
-        if (col != null)
-        {
-            col.enabled = false;
-        }
-
-        Enemy_AI ai = GetComponent<Enemy_AI>();
-        if (ai != null)
-        {
-            ai.EndAttack();
-            ai.enabled = false;
-        }
+        if (rb != null) rb.linearVelocity = Vector2.zero;
+        if (col != null) col.enabled = false;
+        if (ai != null) ai.enabled = false;
 
         if (anim != null)
         {
             anim.SetTrigger("Destroy");
+            Destroy(gameObject, destroyDelay);
         }
         else
         {

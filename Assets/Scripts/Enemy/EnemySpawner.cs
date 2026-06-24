@@ -11,45 +11,37 @@ public enum SpawnerState
 
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("Spawn Settings")]
     public GameObject enemyPrefab;
     public Transform[] spawnPoints;
-
-    [Tooltip("Offset casuale piccolo intorno allo spawn point. Utile quando i nemici sono più degli spawn point.")]
     public float spawnRandomOffset = 0.35f;
-
-    [Header("Timing")]
-    [Tooltip("Pausa prima di far partire l'ondata successiva.")]
     public float pausaTraOndate = 1.5f;
 
-    [Header("State")]
     [SerializeField] private SpawnerState stato = SpawnerState.Inattivo;
+    [SerializeField] private Transform spawnedEnemiesRoot;
 
     private QuestData quest;
-    private int indiceOndataCorrente = 0;
+    private int indiceOndataCorrente;
     private Coroutine routineOndate;
     private readonly List<GameObject> spawnedEnemies = new List<GameObject>();
+
+    private void Awake()
+    {
+        ResolveSpawnPoints();
+    }
 
     public void AvviaQuest(QuestData questData)
     {
         if (stato == SpawnerState.InCorso) return;
+        if (questData == null || enemyPrefab == null) return;
 
-        if (questData == null)
-        {
-            Debug.LogWarning("QuestData non assegnata allo spawner.");
-            return;
-        }
+        ResolveSpawnPoints();
 
         quest = questData;
         indiceOndataCorrente = 0;
         stato = SpawnerState.InCorso;
         spawnedEnemies.Clear();
 
-        if (routineOndate != null)
-        {
-            StopCoroutine(routineOndate);
-        }
-
+        if (routineOndate != null) StopCoroutine(routineOndate);
         routineOndate = StartCoroutine(GestisciOndate());
     }
 
@@ -65,10 +57,7 @@ public class EnemySpawner : MonoBehaviour
         {
             foreach (GameObject enemy in spawnedEnemies)
             {
-                if (enemy != null)
-                {
-                    Destroy(enemy);
-                }
+                if (enemy != null) Destroy(enemy);
             }
         }
 
@@ -81,9 +70,9 @@ public class EnemySpawner : MonoBehaviour
         while (stato == SpawnerState.InCorso && quest != null && indiceOndataCorrente < quest.ondate.Count)
         {
             Ondata ondata = quest.ondate[indiceOndataCorrente];
-            SpawnaOndata(ondata);
+            SpawnWave(ondata);
 
-            yield return new WaitUntil(() => stato != SpawnerState.InCorso || OndataAzzerata());
+            yield return new WaitUntil(() => stato != SpawnerState.InCorso || WaveCleared());
 
             if (stato != SpawnerState.InCorso)
             {
@@ -103,65 +92,43 @@ public class EnemySpawner : MonoBehaviour
         routineOndate = null;
     }
 
-    private void SpawnaOndata(Ondata ondata)
+    private void SpawnWave(Ondata ondata)
     {
-        if (ondata == null)
-        {
-            Debug.LogWarning("Ondata non valida.");
-            return;
-        }
+        if (ondata == null) return;
 
         for (int i = 0; i < ondata.numeroNemici; i++)
         {
-            SpawnSingolo();
+            SpawnSingle();
         }
     }
 
-    private void SpawnSingolo()
+    private void SpawnSingle()
     {
-        if (enemyPrefab == null)
-        {
-            Debug.LogWarning("EnemyPrefab non presente.");
-            return;
-        }
+        if (enemyPrefab == null || spawnPoints == null || spawnPoints.Length == 0) return;
 
-        if (spawnPoints == null || spawnPoints.Length == 0)
-        {
-            Debug.LogWarning("Nessun spawn point valido.");
-            return;
-        }
+        Transform selectedSpawn = GetRandomSpawnPoint();
+        if (selectedSpawn == null) return;
 
-        List<Transform> validSpawnPoints = new List<Transform>();
+        Vector2 randomOffset = Random.insideUnitCircle * spawnRandomOffset;
+        Vector3 spawnPosition = selectedSpawn.position + new Vector3(randomOffset.x, randomOffset.y, 0f);
+        GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity, GetSpawnedEnemiesRoot());
+        spawnedEnemies.Add(enemy);
+    }
+
+    private Transform GetRandomSpawnPoint()
+    {
+        List<Transform> valid = new List<Transform>();
 
         foreach (Transform spawnPoint in spawnPoints)
         {
-            if (spawnPoint != null)
-            {
-                validSpawnPoints.Add(spawnPoint);
-            }
+            if (spawnPoint != null) valid.Add(spawnPoint);
         }
 
-        if (validSpawnPoints.Count == 0)
-        {
-            Debug.LogWarning("Nessun spawn point valido.");
-            return;
-        }
-
-        Transform selectedSpawn = validSpawnPoints[Random.Range(0, validSpawnPoints.Count)];
-        Vector2 randomOffset = Random.insideUnitCircle * spawnRandomOffset;
-        Vector3 spawnPosition = selectedSpawn.position + new Vector3(randomOffset.x, randomOffset.y, 0f);
-
-        GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
-        spawnedEnemies.Add(enemy);
-
-        Enemy_AI ai = enemy.GetComponent<Enemy_AI>();
-        if (ai == null)
-        {
-            Debug.LogWarning("Enemy_AI non presente sul prefab nemico.");
-        }
+        if (valid.Count == 0) return null;
+        return valid[Random.Range(0, valid.Count)];
     }
 
-    private bool OndataAzzerata()
+    private bool WaveCleared()
     {
         CleanEnemyList();
         return spawnedEnemies.Count == 0;
@@ -176,7 +143,41 @@ public class EnemySpawner : MonoBehaviour
             if (enemy == null || !enemy.activeInHierarchy)
             {
                 spawnedEnemies.RemoveAt(i);
+                continue;
+            }
+
+            EnemyStats stats = enemy.GetComponent<EnemyStats>();
+            if (stats != null && stats.IsDead)
+            {
+                spawnedEnemies.RemoveAt(i);
             }
         }
+    }
+
+    private void ResolveSpawnPoints()
+    {
+        if (spawnPoints != null && spawnPoints.Length > 0) return;
+
+        Transform spawnRoot = transform.Find("EnemySpawnPoints");
+        if (spawnRoot == null) spawnRoot = transform.Find("EnemySpawns");
+        if (spawnRoot == null) return;
+
+        List<Transform> points = new List<Transform>();
+        foreach (Transform child in spawnRoot)
+        {
+            points.Add(child);
+        }
+
+        spawnPoints = points.ToArray();
+    }
+
+    private Transform GetSpawnedEnemiesRoot()
+    {
+        if (spawnedEnemiesRoot != null) return spawnedEnemiesRoot;
+
+        GameObject root = new GameObject("SpawnedEnemies");
+        root.transform.SetParent(transform);
+        spawnedEnemiesRoot = root.transform;
+        return spawnedEnemiesRoot;
     }
 }

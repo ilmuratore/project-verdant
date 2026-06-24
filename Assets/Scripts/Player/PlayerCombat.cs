@@ -1,91 +1,75 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class PlayerCombat : MonoBehaviour
 {
-    [Header("Stats")]
     public PlayerStats stats;
-
-    [Header("Attack")]
     public Transform attackPoint;
     public LayerMask enemyLayer;
 
-
     private Animator anim;
     private PlayerMovement playerMovement;
+    private GameInput input;
 
-    private void Start()
+    private void Awake()
     {
         anim = GetComponent<Animator>();
         playerMovement = GetComponent<PlayerMovement>();
+        stats = stats != null ? stats : GetComponent<PlayerStats>();
+
+        if (attackPoint == null)
+        {
+            Transform foundAttackPoint = transform.Find("AttackPoint");
+            if (foundAttackPoint != null) attackPoint = foundAttackPoint;
+        }
     }
 
-    private void Update()
+    private void OnEnable()
     {
-        if (Keyboard.current.spaceKey.wasPressedThisFrame)
-        {
-            TryAttack();
-        }
+        input = GameInput.GetOrCreate();
+        input.OnAttack += TryAttack;
+    }
+
+    private void OnDisable()
+    {
+        if (input != null) input.OnAttack -= TryAttack;
     }
 
     private void TryAttack()
     {
         if (playerMovement == null) return;
         if (playerMovement.controlliBloccato) return;
-        if (!playerMovement.CanAttack())
-        {
-            return;
-        }
+        if (GameManager.Instance != null && GameManager.Instance.ControlsBlocked) return;
+        if (!playerMovement.CanAttack()) return;
 
         playerMovement.StartAttack();
-
-        if (anim != null)
-        {
-            anim.SetTrigger("Attack");
-        }
+        anim?.SetTrigger("Attack");
     }
 
     public void InflictDamage()
     {
-        
-        if (attackPoint == null)
+        if (attackPoint == null || stats == null || stats.data == null) return;
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(attackPoint.position, stats.data.attackRange, enemyLayer);
+
+        foreach (Collider2D hit in hits)
         {
-            Debug.LogWarning("AttackPoint non assegnato nel PlayerCombat");
-            return;
-        }
-        float range = stats.data.attackRange;
-        int dmg = stats.AttaccoEffettivo;
+            if (hit == null) continue;
 
-        Collider2D[] enemiesHit = Physics2D.OverlapCircleAll(
-            attackPoint.position,
-            range,
-            enemyLayer
-        );
+            IDamageable damageable = hit.GetComponentInParent<IDamageable>();
+            if (damageable == null || damageable.IsDead || damageable.Team != DamageableTeam.Enemy) continue;
 
-        foreach (Collider2D enemy in enemiesHit)
-        {
-            EnemyStats enemyStats = enemy.GetComponent<EnemyStats>();
-
-            if (enemyStats != null)
-            {
-                enemyStats.TakeDamage(dmg);
-            }
+            damageable.TakeDamage(stats.AttaccoEffettivo);
         }
     }
 
     public void EndAttack()
     {
-        if (playerMovement != null)
-        {
-            playerMovement.EndAttack();
-        }
+        playerMovement?.EndAttack();
     }
 
     private void OnDrawGizmosSelected()
     {
-        if (attackPoint == null) return;
-
-        float range = stats.data.attackRange;
-        Gizmos.DrawWireSphere(attackPoint.position, range);
+        if (attackPoint == null || stats == null || stats.data == null) return;
+        Gizmos.DrawWireSphere(attackPoint.position, stats.data.attackRange);
     }
 }

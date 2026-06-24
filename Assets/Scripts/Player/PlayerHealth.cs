@@ -1,106 +1,81 @@
 using TMPro;
 using UnityEngine;
 
-public class PlayerHealth : MonoBehaviour
+public class PlayerHealth : MonoBehaviour, IDamageable
 {
-    [Header("Stats")]
     public PlayerStats stats;
 
-    [Header("Runtime")]
-    public int currentHealth;
+    [SerializeField] private int currentHealth;
+    [SerializeField] private bool isInvulnerable;
 
-    [Header("UI")]
-    public TMP_Text healthText;
-    public Animator healthTextAnim;
+    public int CurrentHealth => currentHealth;
+    public int MaxHealth => stats != null ? stats.vitaMassimaEffettiva : Mathf.Max(1, currentHealth);
+    public bool IsDead => currentHealth <= 0;
+    public DamageableTeam Team => DamageableTeam.Player;
+    public Transform TargetTransform => transform;
+    public Collider2D HitCollider { get; private set; }
 
-    [Header("Nomi UI nella scena")]
-    [SerializeField] private string healthTextObjectName = "HealthText";
-    [SerializeField] private string fallbackHealthTextObjectName = "Player Health";
-    [SerializeField] private string healthTextAnimatorObjectName = "HealthText";
-
-    private bool isInvulnerable = false;
+    private PlayerMovement movement;
+    private Animator animator;
 
     private void Awake()
     {
-        ResolveReferences();
+        stats = stats != null ? stats : GetComponent<PlayerStats>();
+        movement = GetComponent<PlayerMovement>();
+        animator = GetComponent<Animator>();
+        HitCollider = GetComponent<Collider2D>();
+
+        if (currentHealth <= 0) currentHealth = MaxHealth;
+    }
+
+    private void OnEnable()
+    {
+        DamageableRegistry.Register(this);
+    }
+
+    private void OnDisable()
+    {
+        DamageableRegistry.Unregister(this);
     }
 
     private void Start()
     {
-        ResolveReferences();
-
-        if (stats != null && currentHealth <= 0)
-        {
-            currentHealth = stats.vitaMassimaEffettiva;
-        }
-
-        UpdateHealthText();
+        currentHealth = Mathf.Clamp(currentHealth, 1, MaxHealth);
+        UIManager.Instance?.UpdatePlayerHealth(currentHealth, MaxHealth);
     }
 
-    private void ResolveReferences()
+    public void TakeDamage(int amount)
     {
-        if (stats == null)
-        {
-            stats = GetComponent<PlayerStats>();
-        }
-
-        healthText = SceneReferenceFinder.ResolveComponentInChildren(healthText, null, healthTextObjectName);
-
-        if (healthText == null && !string.IsNullOrWhiteSpace(fallbackHealthTextObjectName))
-        {
-            healthText = SceneReferenceFinder.ResolveComponentInChildren(healthText, null, fallbackHealthTextObjectName);
-        }
-
-        healthTextAnim = SceneReferenceFinder.ResolveComponentInChildren(healthTextAnim, null, healthTextAnimatorObjectName);
-
-        if (healthTextAnim == null && healthText != null)
-        {
-            healthTextAnim = healthText.GetComponent<Animator>();
-        }
+        if (amount <= 0) return;
+        ChangeHealth(-amount);
     }
 
     public void ChangeHealth(int amount)
     {
-        ResolveReferences();
-
-        if (isInvulnerable && amount < 0)
-        {
-            return;
-        }
+        if (IsDead) return;
+        if (isInvulnerable && amount < 0) return;
 
         if (amount < 0 && stats != null)
         {
-            int dannoSubito = stats.ApplicaDifesa(-amount);
-            amount = -dannoSubito;
+            amount = -stats.ApplicaDifesa(-amount);
         }
 
-        currentHealth += amount;
+        currentHealth = Mathf.Clamp(currentHealth + amount, 0, MaxHealth);
+        UIManager.Instance?.UpdatePlayerHealth(currentHealth, MaxHealth);
 
-        int max = stats != null ? stats.vitaMassimaEffettiva : Mathf.Max(1, currentHealth);
-        currentHealth = Mathf.Clamp(currentHealth, 0, max);
+        if (currentHealth <= 0) Die();
+    }
 
-        if (HUDManager.Instance != null)
-        {
-            HUDManager.Instance.UpdateHealth(currentHealth, max);
-        }
-
-        if (healthTextAnim != null)
-        {
-            healthTextAnim.Play("TextAnimation");
-        }
-
-        UpdateHealthText();
-
-        if (currentHealth <= 0)
-        {
-            gameObject.SetActive(false);
-        }
+    public void IncreaseMaxHealth(int amount)
+    {
+        if (amount <= 0) return;
+        currentHealth = Mathf.Clamp(currentHealth + amount, 0, MaxHealth);
+        UIManager.Instance?.UpdatePlayerHealth(currentHealth, MaxHealth);
     }
 
     public void AumentaVitaMassima(int quantita)
     {
-        currentHealth += quantita;
-        UpdateHealthText();
+        IncreaseMaxHealth(quantita);
     }
 
     public void SetInvulnerable(bool value)
@@ -110,17 +85,19 @@ public class PlayerHealth : MonoBehaviour
 
     public void UpdateHealthText()
     {
-        ResolveReferences();
+        UIManager.Instance?.UpdatePlayerHealth(currentHealth, MaxHealth);
+    }
 
-        int max = stats != null ? stats.vitaMassimaEffettiva : Mathf.Max(1, currentHealth);
+    private void Die()
+    {
+        currentHealth = 0;
+        movement?.SetDead();
 
-        if (HUDManager.Instance != null)
+        if (animator != null)
         {
-            HUDManager.Instance.UpdateHealth(currentHealth, max);
+            animator.SetBool("IsMoving", false);
         }
 
-        if (healthText == null) return;
-
-        healthText.text = "HP: " + currentHealth + " / " + max;
+        gameObject.SetActive(false);
     }
 }

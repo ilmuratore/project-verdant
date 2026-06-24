@@ -2,11 +2,8 @@ using UnityEngine;
 
 public class MinimapCameraFollow : MonoBehaviour
 {
-    [Header("Target da seguire")]
     [SerializeField] private Transform target;
     [SerializeField] private string playerTag = "Player";
-
-    [Header("Impostazioni camera")]
     [SerializeField] private float smoothSpeed = 10f;
     [SerializeField] private Vector3 offset = new Vector3(0f, 0f, -10f);
 
@@ -17,11 +14,7 @@ public class MinimapCameraFollow : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (target == null)
-        {
-            ResolveTarget();
-        }
-
+        if (target == null) ResolveTarget();
         if (target == null) return;
 
         Vector3 targetPosition = target.position + offset;
@@ -33,9 +26,6 @@ public class MinimapCameraFollow : MonoBehaviour
         if (target != null && target.gameObject.scene.IsValid()) return;
 
         GameObject player = GameObject.FindGameObjectWithTag(playerTag);
-        if (player != null)
-        {
-            target = player.transform;
-        }
+        if (player != null) target = player.transform;
     }
 }

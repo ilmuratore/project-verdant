@@ -14,11 +14,7 @@ public class CameraFollow : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (target == null)
-        {
-            ResolveTarget();
-        }
-
+        if (target == null) ResolveTarget();
         if (target == null) return;
 
         Vector3 targetPosition = target.position + offset;
@@ -30,9 +26,6 @@ public class CameraFollow : MonoBehaviour
         if (target != null && target.gameObject.scene.IsValid()) return;
 
         GameObject player = GameObject.FindGameObjectWithTag(playerTag);
-        if (player != null)
-        {
-            target = player.transform;
-        }
+        if (player != null) target = player.transform;
     }
 }

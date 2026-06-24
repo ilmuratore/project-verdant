@@ -1,21 +1,18 @@
 using UnityEngine;
 
-
 public enum MiniMapIconType
-{ 
+{
     Player,
     Enemy,
     Monk,
     Quest,
     Objective
 }
+
+[RequireComponent(typeof(SpriteRenderer))]
 public class MinimapIcon : MonoBehaviour
 {
-
-    [Header("Tipo Icona")]
     public MiniMapIconType tipo = MiniMapIconType.Objective;
-
-    [Header("Aspetto")]
     public Color colore = Color.white;
     public int sortingOrder = 500;
 
@@ -24,13 +21,24 @@ public class MinimapIcon : MonoBehaviour
     private void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
-        sr.color = colore;
-        sr.sortingOrder = sortingOrder;
+        ApplySettings();
+    }
 
+    private void OnValidate()
+    {
+        sr = GetComponent<SpriteRenderer>();
+        ApplySettings();
     }
 
     private void LateUpdate()
     {
         transform.rotation = Quaternion.identity;
+    }
+
+    private void ApplySettings()
+    {
+        if (sr == null) return;
+        sr.color = colore;
+        sr.sortingOrder = sortingOrder;
     }
 }

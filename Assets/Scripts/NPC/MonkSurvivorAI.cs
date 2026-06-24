@@ -11,26 +11,14 @@ public enum MonkSurvivorState
 [RequireComponent(typeof(Rigidbody2D))]
 public class MonkSurvivorAI : MonoBehaviour
 {
-    [Header("Scappa")]
     public float raggioPericolo = 1.5f;
     public float velocitaFuga = 2.5f;
     public LayerMask enemyLayer;
-
-    [Header("Ritorno")]
     public float velocitaRitorno = 2f;
     public float distanzaArrivo = 0.08f;
-
-    [Header("Ostacoli")]
-    [Tooltip("Layer della Tilemap, case, muri, ostacoli.")]
     public LayerMask obstacleLayer;
-
-    [Tooltip("Raggio usato per controllare se davanti al monaco c'è un ostacolo.")]
     public float obstacleCheckRadius = 0.18f;
-
-    [Tooltip("Distanza del controllo ostacolo davanti al monaco.")]
     public float obstacleCheckDistance = 0.25f;
-
-    [Header("Animazione")]
     public string walkingParameter = "IsWalking";
 
     [SerializeField] private MonkSurvivorState currentState = MonkSurvivorState.Safe;
@@ -39,27 +27,17 @@ public class MonkSurvivorAI : MonoBehaviour
     private SpriteRenderer sr;
     private Animator anim;
     private MonkHealth health;
-
     private Vector3 puntoDiPartenza;
 
-    public bool IsControllingMovement
-    {
-        get
-        {
-            return currentState == MonkSurvivorState.Fleeing ||
-                   currentState == MonkSurvivorState.ReturningHome;
-        }
-    }
+    public bool IsControllingMovement => currentState == MonkSurvivorState.Fleeing || currentState == MonkSurvivorState.ReturningHome;
 
-    private void Start()
+    private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponent<SpriteRenderer>();
         anim = GetComponent<Animator>();
         health = GetComponent<MonkHealth>();
-
         puntoDiPartenza = transform.position;
-        currentState = MonkSurvivorState.Safe;
     }
 
     private void FixedUpdate()
@@ -71,20 +49,19 @@ public class MonkSurvivorAI : MonoBehaviour
             return;
         }
 
-        Transform enemy = TrovaNemicoPiuVicino();
+        Transform enemy = FindNearestEnemy();
 
         if (enemy != null)
         {
             currentState = MonkSurvivorState.Fleeing;
-            ScappaDa(enemy);
+            FleeFrom(enemy);
             return;
         }
 
-        if (currentState == MonkSurvivorState.Fleeing ||
-            currentState == MonkSurvivorState.ReturningHome)
+        if (currentState == MonkSurvivorState.Fleeing || currentState == MonkSurvivorState.ReturningHome)
         {
             currentState = MonkSurvivorState.ReturningHome;
-            RitornaAlPuntoDiPartenza();
+            ReturnHome();
             return;
         }
 
@@ -97,152 +74,119 @@ public class MonkSurvivorAI : MonoBehaviour
         return health != null && health.isDead;
     }
 
-    private Transform TrovaNemicoPiuVicino()
+    private Transform FindNearestEnemy()
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(
-            transform.position,
-            raggioPericolo,
-            enemyLayer
-        );
-
-        Transform migliore = null;
-        float distanzaMigliore = Mathf.Infinity;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, raggioPericolo, enemyLayer);
+        Transform best = null;
+        float bestDistance = Mathf.Infinity;
 
         foreach (Collider2D hit in hits)
         {
-            if (hit == null) continue;
-            if (hit.isTrigger) continue;
-            if (!hit.gameObject.activeInHierarchy) continue;
+            if (hit == null || hit.isTrigger || !hit.gameObject.activeInHierarchy) continue;
 
-            EnemyStats enemyStats = hit.GetComponentInParent<EnemyStats>();
-            if (enemyStats == null) continue;
+            IDamageable damageable = hit.GetComponentInParent<IDamageable>();
+            if (damageable == null || damageable.IsDead || damageable.Team != DamageableTeam.Enemy) continue;
 
-            float distanza = Vector2.Distance(transform.position, enemyStats.transform.position);
+            float distance = Vector2.Distance(transform.position, damageable.TargetTransform.position);
+            if (distance >= bestDistance) continue;
 
-            if (distanza > raggioPericolo) continue;
-
-            if (distanza < distanzaMigliore)
-            {
-                distanzaMigliore = distanza;
-                migliore = enemyStats.transform;
-            }
+            bestDistance = distance;
+            best = damageable.TargetTransform;
         }
 
-        return migliore;
+        return best;
     }
 
-    private void ScappaDa(Transform enemy)
+    private void FleeFrom(Transform enemy)
     {
-        Vector2 direzione = ((Vector2)transform.position - (Vector2)enemy.position).normalized;
-        MuoviInDirezione(direzione, velocitaFuga);
+        Vector2 direction = ((Vector2)transform.position - (Vector2)enemy.position).normalized;
+        MoveInDirection(direction, velocitaFuga);
     }
 
-    private void RitornaAlPuntoDiPartenza()
+    private void ReturnHome()
     {
-        Vector2 posizione = rb.position;
-        Vector2 casa = puntoDiPartenza;
-        Vector2 versoCasa = casa - posizione;
+        Vector2 position = rb.position;
+        Vector2 home = puntoDiPartenza;
+        Vector2 toHome = home - position;
 
-        if (versoCasa.magnitude <= distanzaArrivo)
+        if (toHome.magnitude <= distanzaArrivo)
         {
-            rb.position = casa;
+            rb.position = home;
             currentState = MonkSurvivorState.Safe;
             StopMovement();
             return;
         }
 
-        Vector2 direzione = versoCasa.normalized;
-        MuoviInDirezione(direzione, velocitaRitorno);
+        MoveInDirection(toHome.normalized, velocitaRitorno);
     }
 
-    private void MuoviInDirezione(Vector2 direzione, float velocita)
+    private void MoveInDirection(Vector2 direction, float speed)
     {
-        if (direzione == Vector2.zero)
+        if (direction == Vector2.zero)
         {
             StopMovement();
             return;
         }
 
-        if (DirezioneLibera(direzione))
+        if (DirectionFree(direction))
         {
-            rb.linearVelocity = direzione * velocita;
-            SetWalking(true);
-            Flip(direzione);
+            ApplyMovement(direction, speed);
             return;
         }
 
-        Vector2 direzioneLateraleA = Vector2.Perpendicular(direzione).normalized;
-        Vector2 direzioneLateraleB = -direzioneLateraleA;
+        Vector2 sideA = Vector2.Perpendicular(direction).normalized;
+        Vector2 sideB = -sideA;
 
-        if (DirezioneLibera(direzioneLateraleA))
+        if (DirectionFree(sideA))
         {
-            rb.linearVelocity = direzioneLateraleA * velocita;
-            SetWalking(true);
-            Flip(direzioneLateraleA);
+            ApplyMovement(sideA, speed);
             return;
         }
 
-        if (DirezioneLibera(direzioneLateraleB))
+        if (DirectionFree(sideB))
         {
-            rb.linearVelocity = direzioneLateraleB * velocita;
-            SetWalking(true);
-            Flip(direzioneLateraleB);
+            ApplyMovement(sideB, speed);
             return;
         }
 
         StopMovement();
     }
 
-    private bool DirezioneLibera(Vector2 direzione)
+    private void ApplyMovement(Vector2 direction, float speed)
+    {
+        rb.linearVelocity = direction * speed;
+        SetWalking(true);
+        Flip(direction);
+    }
+
+    private bool DirectionFree(Vector2 direction)
     {
         if (obstacleLayer.value == 0) return true;
-
-        RaycastHit2D hit = Physics2D.CircleCast(
-            rb.position,
-            obstacleCheckRadius,
-            direzione,
-            obstacleCheckDistance,
-            obstacleLayer
-        );
-
+        RaycastHit2D hit = Physics2D.CircleCast(rb.position, obstacleCheckRadius, direction, obstacleCheckDistance, obstacleLayer);
         return hit.collider == null;
     }
 
     private void StopMovement()
     {
-        rb.linearVelocity = Vector2.zero;
+        if (rb != null) rb.linearVelocity = Vector2.zero;
         SetWalking(false);
     }
 
     private void SetWalking(bool value)
     {
-        if (anim != null)
-        {
-            anim.SetBool(walkingParameter, value);
-        }
+        if (anim != null) anim.SetBool(walkingParameter, value);
     }
 
-    private void Flip(Vector2 direzione)
+    private void Flip(Vector2 direction)
     {
         if (sr == null) return;
-
-        if (direzione.x > 0.1f)
-        {
-            sr.flipX = false;
-        }
-        else if (direzione.x < -0.1f)
-        {
-            sr.flipX = true;
-        }
+        if (direction.x > 0.1f) sr.flipX = false;
+        if (direction.x < -0.1f) sr.flipX = true;
     }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, raggioPericolo);
-
-        Gizmos.color = Color.cyan;
-        Vector3 centro = puntoDiPartenza == Vector3.zero ? transform.position : puntoDiPartenza;
-        Gizmos.DrawWireSphere(centro, distanzaArrivo);
     }
 }

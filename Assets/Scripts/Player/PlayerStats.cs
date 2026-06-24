@@ -1,43 +1,41 @@
 using System;
-using System.Data;
 using UnityEngine;
+
+public enum StatType
+{
+    Attacco,
+    Difesa,
+    Vita
+}
 
 public class PlayerStats : MonoBehaviour
 {
-    [Header("Configurazione Base")]
     public PlayerStatsData data;
 
-    [Header("Progressione (runtime)")]
-    public int level = 1;
-    public int currentXp = 0;
-    public int puntiDisponibili = 0;
+    [SerializeField] private int level = 1;
+    [SerializeField] private int currentXp = 0;
+    [SerializeField] private int puntiDisponibili = 0;
+    [SerializeField] private int puntiAttacco = 0;
+    [SerializeField] private int puntiDifesa = 0;
+    [SerializeField] private int puntiVita = 0;
 
-    [Header("Punti spesi (runtime")]
-    public int puntiAttacco = 0;
-    public int puntiDifesa = 0;
-    public int puntiVita = 0;
-
-    
     public event Action OnStatsChanged;
 
-    public int AttaccoEffettivo
-    {
-        get { return data.attaccoBase + puntiAttacco * data.incrementoAttaco; }
-    }
+    public int Level => level;
+    public int CurrentXp => currentXp;
+    public int PuntiDisponibili => puntiDisponibili;
+    public int PuntiAttacco => puntiAttacco;
+    public int PuntiDifesa => puntiDifesa;
+    public int PuntiVita => puntiVita;
 
-    public int DifesaEffettivo
-    {
-        get { return data.difesaBase + puntiDifesa * data.incrementoDifesa; }
-    }
+    public int AttaccoEffettivo => GetData().attaccoBase + puntiAttacco * GetData().incrementoAttaco;
+    public int DifesaEffettivo => GetData().difesaBase + puntiDifesa * GetData().incrementoDifesa;
+    public int vitaMassimaEffettiva => GetData().vitaBase + puntiVita * GetData().incrementoVita;
+    public int XpNecessari => Mathf.Max(1, Mathf.RoundToInt(GetData().xpBaseLevelUp * Mathf.Pow(GetData().xpCrescita, level - 1)));
 
-    public int vitaMassimaEffettiva
+    private void Start()
     {
-        get { return data.vitaBase + puntiVita * data.incrementoVita;  }
-    }
-
-    public int XpNecessari
-    {
-        get { return Mathf.RoundToInt(data.xpBaseLevelUp * Mathf.Pow(data.xpCrescita, level - 1)); }
+        NotifyChanged();
     }
 
     public void AddXp(int amount)
@@ -46,58 +44,61 @@ public class PlayerStats : MonoBehaviour
 
         currentXp += amount;
 
-        while(currentXp >= XpNecessari)
+        while (currentXp >= XpNecessari)
         {
             currentXp -= XpNecessari;
             LevelUp();
         }
-        NotificaCambiamento();
-    }
 
-    private void LevelUp()
-    {
-        level++;
-        puntiDisponibili += data.puntiPerLivello;
+        NotifyChanged();
     }
 
     public bool SpendiPunto(StatType tipo)
     {
         if (puntiDisponibili <= 0) return false;
+
         switch (tipo)
         {
-            case StatType.Attacco: puntiAttacco++; break;
-            case StatType.Difesa: puntiDifesa++; break;
-            case StatType.Vita: puntiVita++;
+            case StatType.Attacco:
+                puntiAttacco++;
+                break;
+            case StatType.Difesa:
+                puntiDifesa++;
+                break;
+            case StatType.Vita:
+                puntiVita++;
                 PlayerHealth health = GetComponent<PlayerHealth>();
-                if(health != null)
-                {
-                    health.AumentaVitaMassima(data.incrementoVita);
-                }break;
+                if (health != null) health.IncreaseMaxHealth(GetData().incrementoVita);
+                break;
         }
+
         puntiDisponibili--;
-        NotificaCambiamento();
+        NotifyChanged();
         return true;
     }
 
     public int ApplicaDifesa(int dannoInArrivo)
     {
-        int dannoRidotto = dannoInArrivo - DifesaEffettivo;
-        return Mathf.Max(1, dannoRidotto);
+        return Mathf.Max(1, dannoInArrivo - DifesaEffettivo);
     }
 
-    private void NotificaCambiamento()
+    private void LevelUp()
     {
-        if(OnStatsChanged != null)
-        {
-            OnStatsChanged.Invoke();
-        }
+        level++;
+        puntiDisponibili += GetData().puntiPerLivello;
     }
-}
 
-public enum StatType
-{
-    Attacco,
-    Difesa,
-    Vita
+    private PlayerStatsData GetData()
+    {
+        if (data != null) return data;
 
+        data = ScriptableObject.CreateInstance<PlayerStatsData>();
+        return data;
+    }
+
+    private void NotifyChanged()
+    {
+        OnStatsChanged?.Invoke();
+        UIManager.Instance?.RefreshPlayerStats();
+    }
 }

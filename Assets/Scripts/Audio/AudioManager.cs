@@ -9,27 +9,23 @@ public class AudioManager : MonoBehaviour
     private const string AmbientVolumeKey = "Audio_AmbientVolume";
     private const string SfxVolumeKey = "Audio_SfxVolume";
     private const string UiVolumeKey = "Audio_UiVolume";
-
     private const float DefaultMasterVolume = 1f;
     private const float DefaultMusicVolume = 0.6f;
     private const float DefaultAmbientVolume = 0.45f;
     private const float DefaultSfxVolume = 0.85f;
     private const float DefaultUiVolume = 0.8f;
 
-    [Header("Audio Sources")]
     [SerializeField] private AudioSource musicSource;
     [SerializeField] private AudioSource ambientSource;
     [SerializeField] private AudioSource sfxSource;
     [SerializeField] private AudioSource uiSource;
 
-    [Header("Volumi")]
     [Range(0f, 1f)] public float masterVolume = DefaultMasterVolume;
     [Range(0f, 1f)] public float musicVolume = DefaultMusicVolume;
     [Range(0f, 1f)] public float ambientVolume = DefaultAmbientVolume;
     [Range(0f, 1f)] public float sfxVolume = DefaultSfxVolume;
     [Range(0f, 1f)] public float uiVolume = DefaultUiVolume;
 
-    [Header("Avvio automatico")]
     public AudioClip defaultMusic;
     public AudioClip defaultAmbient;
     public bool playDefaultMusicOnStart = true;
@@ -45,7 +41,6 @@ public class AudioManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
-
         EnsureSources();
         LoadAudioSettings();
         ApplyVolumes();
@@ -53,20 +48,16 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-        if (playDefaultMusicOnStart && defaultMusic != null)
-        {
-            PlayMusic(defaultMusic);
-        }
-
-        if (playDefaultAmbientOnStart && defaultAmbient != null)
-        {
-            PlayAmbient(defaultAmbient);
-        }
+        if (playDefaultMusicOnStart && defaultMusic != null) PlayMusic(defaultMusic);
+        if (playDefaultAmbientOnStart && defaultAmbient != null) PlayAmbient(defaultAmbient);
     }
 
     public static AudioManager GetOrCreate()
     {
         if (Instance != null) return Instance;
+
+        AudioManager existing = FindFirstObjectByType<AudioManager>();
+        if (existing != null) return existing;
 
         GameObject go = new GameObject("AudioManager");
         return go.AddComponent<AudioManager>();
@@ -86,10 +77,7 @@ public class AudioManager : MonoBehaviour
 
     public void StopMusic()
     {
-        if (musicSource != null)
-        {
-            musicSource.Stop();
-        }
+        if (musicSource != null) musicSource.Stop();
     }
 
     public void PlayAmbient(AudioClip clip)
@@ -106,10 +94,7 @@ public class AudioManager : MonoBehaviour
 
     public void StopAmbient()
     {
-        if (ambientSource != null)
-        {
-            ambientSource.Stop();
-        }
+        if (ambientSource != null) ambientSource.Stop();
     }
 
     public void PlaySfx(AudioClip clip, float volumeScale = 1f)
@@ -129,7 +114,6 @@ public class AudioManager : MonoBehaviour
     public void PlaySfxAtPosition(AudioClip clip, Vector3 position, float volumeScale = 1f)
     {
         if (clip == null) return;
-
         float finalVolume = masterVolume * sfxVolume * Mathf.Clamp01(volumeScale);
         AudioSource.PlayClipAtPoint(clip, position, finalVolume);
     }
@@ -176,7 +160,6 @@ public class AudioManager : MonoBehaviour
         ambientVolume = DefaultAmbientVolume;
         sfxVolume = DefaultSfxVolume;
         uiVolume = DefaultUiVolume;
-
         ApplyVolumes();
         SaveAudioSettings();
     }
@@ -217,7 +200,6 @@ public class AudioManager : MonoBehaviour
         source.playOnAwake = false;
         source.loop = loop;
         source.spatialBlend = 0f;
-
         return source;
     }
 

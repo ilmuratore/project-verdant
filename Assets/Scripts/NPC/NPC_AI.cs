@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public enum NPCstate
 {
@@ -8,34 +7,21 @@ public enum NPCstate
     Talking
 }
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class NPC_AI : MonoBehaviour
 {
-    [Header("Comportamento")]
-    [Tooltip("Se true questo NPC passeggia.")]
     public bool puoPasseggiare = true;
-
-    [Tooltip("Se true questo NPC può dare quest.")]
     public bool daQuest = false;
-
-    [Header("Passeggiata")]
     public float velocita = 2f;
     public float raggioMovimento = 2f;
     public float attesaMin = 1.5f;
     public float attesaMax = 3f;
     public float distanzaArrivo = 0.08f;
-
-    [Header("Ostacoli")]
-    [Tooltip("Layer della Tilemap, case, muri, ostacoli.")]
     public LayerMask obstacleLayer;
     public float obstacleCheckRadius = 0.18f;
     public float obstacleCheckDistance = 0.25f;
-
-    [Header("Interazione")]
     public float raggioInterazione = 1.5f;
     public Transform player;
-
-    [Header("Dialogo")]
-    public DialogueController dialogo;
 
     [SerializeField] private NPCstate currentState = NPCstate.Idle;
 
@@ -44,30 +30,44 @@ public class NPC_AI : MonoBehaviour
     private SpriteRenderer sr;
     private MonkSurvivorAI survivorAI;
     private MonkHealth health;
-
     private Vector3 puntoDiPartenza;
     private Vector2 destinazione;
     private float attesaCorrente;
     private float timer;
+    private GameInput input;
 
-    private void Start()
+    private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         sr = GetComponent<SpriteRenderer>();
         survivorAI = GetComponent<MonkSurvivorAI>();
         health = GetComponent<MonkHealth>();
-
         puntoDiPartenza = transform.position;
+    }
+
+    private void OnEnable()
+    {
+        input = GameInput.GetOrCreate();
+        input.OnInteract += HandleInteract;
+    }
+
+    private void OnDisable()
+    {
+        if (input != null) input.OnInteract -= HandleInteract;
+    }
+
+    private void Start()
+    {
         ResolveSceneReferences();
-        TransizioneA(NPCstate.Idle);
+        SetState(NPCstate.Idle);
     }
 
     private void Update()
     {
         if (MonkMorto())
         {
-            TransizioneA(NPCstate.Idle);
+            SetState(NPCstate.Idle);
             return;
         }
 
@@ -78,25 +78,9 @@ public class NPC_AI : MonoBehaviour
             return;
         }
 
-        if (currentState != NPCstate.Talking && daQuest && PlayerVicino())
+        if (currentState == NPCstate.Idle)
         {
-            if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
-            {
-                IniziaDialogo();
-            }
-        }
-
-        switch (currentState)
-        {
-            case NPCstate.Idle:
-                UpdateIdle();
-                break;
-
-            case NPCstate.Wandering:
-                break;
-
-            case NPCstate.Talking:
-                break;
+            UpdateIdle();
         }
     }
 
@@ -108,43 +92,30 @@ public class NPC_AI : MonoBehaviour
             return;
         }
 
-        if (MovimentoGestitoDaSurvivor())
-        {
-            return;
-        }
+        if (MovimentoGestitoDaSurvivor()) return;
 
         if (currentState == NPCstate.Wandering)
         {
-            UpdateWanderingFisico();
+            UpdateWandering();
         }
     }
 
     private void ResolveSceneReferences()
     {
-        if (player == null || !SceneReferenceFinder.IsSceneInstance(player))
-        {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (player != null && player.gameObject.scene.IsValid()) return;
 
-            if (playerObj != null)
-            {
-                player = playerObj.transform;
-            }
-        }
-
-        if (dialogo == null || !SceneReferenceFinder.IsSceneInstance(dialogo))
-        {
-            dialogo = SceneReferenceFinder.FindComponentInActiveScene<DialogueController>();
-        }
+        PlayerMovement playerMovement = FindFirstObjectByType<PlayerMovement>();
+        if (playerMovement != null) player = playerMovement.transform;
     }
 
-    private bool MonkMorto()
+    private void HandleInteract()
     {
-        return health != null && health.isDead;
-    }
+        if (!daQuest) return;
+        if (currentState == NPCstate.Talking) return;
+        if (GameManager.Instance != null && GameManager.Instance.ControlsBlocked) return;
+        if (!PlayerVicino()) return;
 
-    private bool MovimentoGestitoDaSurvivor()
-    {
-        return survivorAI != null && survivorAI.IsControllingMovement;
+        StartDialogue();
     }
 
     private void UpdateIdle()
@@ -157,27 +128,27 @@ public class NPC_AI : MonoBehaviour
 
         if (timer >= attesaCorrente)
         {
-            ScegliNuovaDestinazione();
-            TransizioneA(NPCstate.Wandering);
+            ChooseNewDestination();
+            SetState(NPCstate.Wandering);
         }
     }
 
-    private void UpdateWanderingFisico()
+    private void UpdateWandering()
     {
         Vector2 posizione = rb.position;
         Vector2 verso = destinazione - posizione;
 
         if (verso.magnitude <= distanzaArrivo)
         {
-            TransizioneA(NPCstate.Idle);
+            SetState(NPCstate.Idle);
             return;
         }
 
         Vector2 direzione = verso.normalized;
 
-        if (!DirezioneLibera(direzione))
+        if (!DirectionFree(direzione))
         {
-            TransizioneA(NPCstate.Idle);
+            SetState(NPCstate.Idle);
             return;
         }
 
@@ -186,30 +157,31 @@ public class NPC_AI : MonoBehaviour
         Flip(direzione);
     }
 
-    private void TransizioneA(NPCstate nuovo)
+    private void SetState(NPCstate newState)
     {
-        currentState = nuovo;
+        currentState = newState;
 
-        if (nuovo == NPCstate.Idle)
+        if (newState == NPCstate.Idle)
         {
             StopMovement();
             timer = 0f;
             attesaCorrente = Random.Range(attesaMin, attesaMax);
         }
-        else if (nuovo == NPCstate.Talking)
+
+        if (newState == NPCstate.Talking)
         {
             StopMovement();
         }
     }
 
-    private void ScegliNuovaDestinazione()
+    private void ChooseNewDestination()
     {
         for (int i = 0; i < 10; i++)
         {
             Vector2 offset = Random.insideUnitCircle * raggioMovimento;
             Vector2 nuovaDestinazione = (Vector2)puntoDiPartenza + offset;
 
-            if (PuntoLibero(nuovaDestinazione))
+            if (PointFree(nuovaDestinazione))
             {
                 destinazione = nuovaDestinazione;
                 return;
@@ -219,90 +191,62 @@ public class NPC_AI : MonoBehaviour
         destinazione = transform.position;
     }
 
-    private bool PuntoLibero(Vector2 punto)
+    private bool PointFree(Vector2 point)
     {
         if (obstacleLayer.value == 0) return true;
-
-        Collider2D hit = Physics2D.OverlapCircle(
-            punto,
-            obstacleCheckRadius,
-            obstacleLayer
-        );
-
-        return hit == null;
+        return Physics2D.OverlapCircle(point, obstacleCheckRadius, obstacleLayer) == null;
     }
 
-    private bool DirezioneLibera(Vector2 direzione)
+    private bool DirectionFree(Vector2 direction)
     {
         if (obstacleLayer.value == 0) return true;
-
-        RaycastHit2D hit = Physics2D.CircleCast(
-            rb.position,
-            obstacleCheckRadius,
-            direzione,
-            obstacleCheckDistance,
-            obstacleLayer
-        );
-
+        RaycastHit2D hit = Physics2D.CircleCast(rb.position, obstacleCheckRadius, direction, obstacleCheckDistance, obstacleLayer);
         return hit.collider == null;
     }
 
-    private void IniziaDialogo()
+    private void StartDialogue()
     {
-        ResolveSceneReferences();
-
-        if (dialogo == null)
-        {
-            Debug.LogWarning("DialogueController non trovato nella scena.");
-            return;
-        }
-
-        TransizioneA(NPCstate.Talking);
-        dialogo.ApriDialogo(this);
+        SetState(NPCstate.Talking);
+        UIManager.Instance?.OpenDialogue(this);
     }
 
     public void FineDialogo()
     {
-        TransizioneA(NPCstate.Idle);
+        SetState(NPCstate.Idle);
     }
 
     private bool PlayerVicino()
     {
         ResolveSceneReferences();
-
         if (player == null) return false;
         return Vector2.Distance(transform.position, player.position) <= raggioInterazione;
     }
 
+    private bool MonkMorto()
+    {
+        return health != null && health.isDead;
+    }
+
+    private bool MovimentoGestitoDaSurvivor()
+    {
+        return survivorAI != null && survivorAI.IsControllingMovement;
+    }
+
     private void StopMovement()
     {
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector2.zero;
-        }
-
+        if (rb != null) rb.linearVelocity = Vector2.zero;
         SetWalking(false);
     }
 
     private void SetWalking(bool value)
     {
-        if (anim != null)
-        {
-            anim.SetBool("IsWalking", value);
-        }
+        if (anim != null) anim.SetBool("IsWalking", value);
     }
 
-    private void Flip(Vector2 direzione)
+    private void Flip(Vector2 direction)
     {
         if (sr == null) return;
-
-        if (direzione.x > 0.01f)
-        {
-            sr.flipX = false;
-        }
-        else if (direzione.x < -0.01f)
-        {
-            sr.flipX = true;
-        }
+        if (direction.x > 0.01f) sr.flipX = false;
+        if (direction.x < -0.01f) sr.flipX = true;
     }
 }

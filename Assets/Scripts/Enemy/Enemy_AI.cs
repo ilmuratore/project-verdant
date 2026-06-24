@@ -7,44 +7,40 @@ public enum EnemyState
     Attack
 }
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class Enemy_AI : MonoBehaviour
 {
     [SerializeField] protected EnemyState currentState = EnemyState.Idle;
+    [SerializeField] private float targetSearchInterval = 0.25f;
+    [SerializeField] private float aggroRadius = 30f;
 
-    [Header("Tag dei target")]
-    [SerializeField] private string playerTag = "Player";
-    [SerializeField] private string npcTag = "NPC";
-
-    [Header("Target dinamici")]
-    [Tooltip("Ogni quanto il nemico ricalcola il bersaglio più vicino tra Player e NPC.")]
-    public float intervalloRicercaTarget = 0.25f;
-
-    [Tooltip("Distanza massima entro cui il nemico cerca un bersaglio. Per questa quest conviene 30 o 40.")]
-    public float raggioAggro = 30f;
-
-    private Transform currentTarget;
-    private float timerRicercaTarget;
-
+    private IDamageable currentTarget;
+    private float targetSearchTimer;
     private float attackRange = 0.6f;
     private float speed = 2f;
     private int damage = 1;
-
     private Rigidbody2D rb;
     private Animator enemyAnim;
     private SpriteRenderer sr;
     private CircleCollider2D detectionCollider;
+    private Collider2D ownCollider;
     private EnemyStats stats;
+    private Vector3 startPosition;
+    private bool attackCycleRunning;
 
-    private Vector3 posizioneIniziale;
-
-    private void Start()
+    private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         enemyAnim = GetComponent<Animator>();
         sr = GetComponent<SpriteRenderer>();
         detectionCollider = GetComponent<CircleCollider2D>();
+        ownCollider = GetComponent<Collider2D>();
         stats = GetComponent<EnemyStats>();
+        startPosition = transform.position;
+    }
 
+    private void Start()
+    {
         if (stats != null && stats.data != null)
         {
             attackRange = stats.data.attackRange;
@@ -52,19 +48,17 @@ public class Enemy_AI : MonoBehaviour
             damage = stats.data.damage;
         }
 
-        posizioneIniziale = transform.position;
-        currentTarget = TrovaTargetPiuVicino();
-
-        TransizioneA(EnemyState.Idle);
+        currentTarget = FindNearestTarget();
+        SetState(EnemyState.Idle);
     }
 
     private void FixedUpdate()
     {
-        AggiornaTargetSeNecessario();
+        UpdateTargetIfNeeded();
 
-        if (!TargetValido())
+        if (!TargetValid())
         {
-            VaiInIdle();
+            SetState(EnemyState.Idle);
             ReturnBase();
             return;
         }
@@ -74,11 +68,9 @@ public class Enemy_AI : MonoBehaviour
             case EnemyState.Idle:
                 UpdateIdle();
                 break;
-
             case EnemyState.Chasing:
                 UpdateChasing();
                 break;
-
             case EnemyState.Attack:
                 UpdateAttack();
                 break;
@@ -89,9 +81,9 @@ public class Enemy_AI : MonoBehaviour
     {
         SetRunning(false);
 
-        if (TargetValido())
+        if (TargetValid())
         {
-            TransizioneA(EnemyState.Chasing);
+            SetState(EnemyState.Chasing);
             return;
         }
 
@@ -100,23 +92,22 @@ public class Enemy_AI : MonoBehaviour
 
     private void UpdateChasing()
     {
-        if (!TargetValido())
+        if (!TargetValid())
         {
-            TransizioneA(EnemyState.Idle);
+            SetState(EnemyState.Idle);
             return;
         }
 
         if (TargetInAttackRange())
         {
-            TransizioneA(EnemyState.Attack);
+            StartAttackCycle();
             return;
         }
 
-        Vector2 direction = (currentTarget.position - transform.position).normalized;
-
+        Vector2 direction = ((Vector2)currentTarget.TargetTransform.position - rb.position).normalized;
         rb.linearVelocity = direction * speed;
         SetRunning(true);
-        FlipECollider(direction);
+        FlipAndCollider(direction);
     }
 
     private void UpdateAttack()
@@ -124,177 +115,92 @@ public class Enemy_AI : MonoBehaviour
         rb.linearVelocity = Vector2.zero;
         SetRunning(false);
 
-        if (!TargetValido())
+        if (!TargetValid())
         {
-            TransizioneA(EnemyState.Idle);
+            attackCycleRunning = false;
+            SetState(EnemyState.Idle);
             return;
         }
 
         if (!TargetInAttackRange())
         {
-            TransizioneA(EnemyState.Chasing);
+            attackCycleRunning = false;
+            SetState(EnemyState.Chasing);
             return;
         }
 
-        Vector2 direction = (currentTarget.position - transform.position).normalized;
-        FlipECollider(direction);
+        Vector2 direction = ((Vector2)currentTarget.TargetTransform.position - rb.position).normalized;
+        FlipAndCollider(direction);
     }
 
-    private void TransizioneA(EnemyState nuovo)
+    private void SetState(EnemyState newState)
     {
-        currentState = nuovo;
+        if (currentState == newState && newState != EnemyState.Attack) return;
 
-        if (nuovo == EnemyState.Idle || nuovo == EnemyState.Attack)
+        currentState = newState;
+
+        if (newState == EnemyState.Idle)
         {
+            attackCycleRunning = false;
             rb.linearVelocity = Vector2.zero;
+            SetRunning(false);
         }
 
-        if (nuovo == EnemyState.Attack)
+        if (newState == EnemyState.Chasing)
         {
-            SetRunning(false);
-
-            if (enemyAnim != null)
-            {
-                enemyAnim.SetTrigger("Attack");
-            }
-        }
-        else if (nuovo == EnemyState.Idle)
-        {
-            SetRunning(false);
+            attackCycleRunning = false;
         }
     }
 
-    private void VaiInIdle()
+    private void StartAttackCycle()
     {
+        if (attackCycleRunning) return;
+
+        currentState = EnemyState.Attack;
+        attackCycleRunning = true;
         rb.linearVelocity = Vector2.zero;
         SetRunning(false);
-        currentState = EnemyState.Idle;
+        enemyAnim?.SetTrigger("Attack");
     }
 
-    private void SetRunning(bool running)
+    private void UpdateTargetIfNeeded()
     {
-        if (enemyAnim != null)
-        {
-            enemyAnim.SetBool("IsRunning", running);
-        }
+        targetSearchTimer += Time.fixedDeltaTime;
+
+        if (targetSearchTimer < targetSearchInterval && TargetValid()) return;
+
+        targetSearchTimer = 0f;
+        currentTarget = FindNearestTarget();
     }
 
-    private void AggiornaTargetSeNecessario()
+    private IDamageable FindNearestTarget()
     {
-        timerRicercaTarget += Time.fixedDeltaTime;
+        DamageableRegistry.Cleanup();
 
-        if (timerRicercaTarget < intervalloRicercaTarget && TargetValido())
+        IDamageable best = null;
+        float bestDistance = Mathf.Infinity;
+
+        foreach (IDamageable target in DamageableRegistry.All)
         {
-            return;
+            if (target == null || target.IsDead) continue;
+            if (target.Team != DamageableTeam.Player && target.Team != DamageableTeam.Ally) continue;
+            if (target.TargetTransform == null) continue;
+
+            float distance = Vector2.Distance(transform.position, target.TargetTransform.position);
+            if (distance > aggroRadius || distance >= bestDistance) continue;
+
+            bestDistance = distance;
+            best = target;
         }
 
-        timerRicercaTarget = 0f;
-        currentTarget = TrovaTargetPiuVicino();
+        return best;
     }
 
-    private Transform TrovaTargetPiuVicino()
+    private bool TargetValid()
     {
-        Transform migliore = null;
-        float distanzaMigliore = Mathf.Infinity;
-
-        GameObject playerObj = GameObject.FindGameObjectWithTag(playerTag);
-        ValutaTarget(playerObj, ref migliore, ref distanzaMigliore);
-
-        GameObject[] npcObjects = GameObject.FindGameObjectsWithTag(npcTag);
-
-        foreach (GameObject npc in npcObjects)
-        {
-            ValutaTarget(npc, ref migliore, ref distanzaMigliore);
-        }
-
-        return migliore;
-    }
-
-    private void ValutaTarget(GameObject targetObj, ref Transform migliore, ref float distanzaMigliore)
-    {
-        if (targetObj == null) return;
-        if (!targetObj.activeInHierarchy) return;
-
-        Transform targetTransform = targetObj.transform;
-
-        if (!TargetVivo(targetTransform)) return;
-
-        float distanza = Vector2.Distance(transform.position, targetTransform.position);
-
-        if (distanza > raggioAggro) return;
-
-        if (distanza < distanzaMigliore)
-        {
-            distanzaMigliore = distanza;
-            migliore = targetTransform;
-        }
-    }
-
-    private bool TargetValido()
-    {
-        if (currentTarget == null) return false;
-        if (!currentTarget.gameObject.activeInHierarchy) return false;
-        if (!TargetVivo(currentTarget)) return false;
-
-        float distanza = Vector2.Distance(transform.position, currentTarget.position);
-        return distanza <= raggioAggro;
-    }
-
-    private bool TargetVivo(Transform target)
-    {
-        if (target == null) return false;
-
-        if (target.CompareTag(playerTag))
-        {
-            PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
-            return playerHealth != null && playerHealth.currentHealth > 0;
-        }
-
-        if (target.CompareTag(npcTag))
-        {
-            MonkHealth monkHealth = target.GetComponent<MonkHealth>();
-            return monkHealth != null && !monkHealth.isDead && monkHealth.currentHealth > 0;
-        }
-
-        return false;
-    }
-
-    private float GetDistanceToTarget()
-    {
-        if (!TargetValido()) return Mathf.Infinity;
-
-        Collider2D targetCollider = GetBestTargetCollider();
-
-        if (targetCollider != null)
-        {
-            Vector2 closestPoint = targetCollider.ClosestPoint(transform.position);
-            return Vector2.Distance(transform.position, closestPoint);
-        }
-
-        return Vector2.Distance(transform.position, currentTarget.position);
-    }
-
-    private Collider2D GetBestTargetCollider()
-    {
-        Collider2D[] colliders = currentTarget.GetComponents<Collider2D>();
-
-        foreach (Collider2D col in colliders)
-        {
-            if (col != null && col.enabled && !col.isTrigger)
-            {
-                return col;
-            }
-        }
-
-        foreach (Collider2D col in colliders)
-        {
-            if (col != null && col.enabled)
-            {
-                return col;
-            }
-        }
-
-        return null;
+        if (currentTarget == null || currentTarget.IsDead || currentTarget.TargetTransform == null) return false;
+        if (!currentTarget.TargetTransform.gameObject.activeInHierarchy) return false;
+        return Vector2.Distance(transform.position, currentTarget.TargetTransform.position) <= aggroRadius;
     }
 
     private bool TargetInAttackRange()
@@ -302,7 +208,33 @@ public class Enemy_AI : MonoBehaviour
         return GetDistanceToTarget() <= attackRange;
     }
 
-    private void FlipECollider(Vector2 direction)
+    private float GetDistanceToTarget()
+    {
+        if (!TargetValid()) return Mathf.Infinity;
+
+        Collider2D targetCollider = currentTarget.HitCollider;
+
+        if (ownCollider != null && targetCollider != null && ownCollider.enabled && targetCollider.enabled)
+        {
+            ColliderDistance2D distance = ownCollider.Distance(targetCollider);
+            return Mathf.Max(0f, distance.distance);
+        }
+
+        if (targetCollider != null && targetCollider.enabled)
+        {
+            Vector2 closestPoint = targetCollider.ClosestPoint(transform.position);
+            return Vector2.Distance(transform.position, closestPoint);
+        }
+
+        return Vector2.Distance(transform.position, currentTarget.TargetTransform.position);
+    }
+
+    private void SetRunning(bool running)
+    {
+        if (enemyAnim != null) enemyAnim.SetBool("IsRunning", running);
+    }
+
+    private void FlipAndCollider(Vector2 direction)
     {
         if (sr == null) return;
 
@@ -318,103 +250,66 @@ public class Enemy_AI : MonoBehaviour
         }
     }
 
-    private void FlipDetectionCollider(bool versoSinistra)
+    private void FlipDetectionCollider(bool left)
     {
         if (detectionCollider == null) return;
-
         float x = Mathf.Abs(detectionCollider.offset.x);
-
-        detectionCollider.offset = new Vector2(
-            versoSinistra ? -x : x,
-            detectionCollider.offset.y
-        );
+        detectionCollider.offset = new Vector2(left ? -x : x, detectionCollider.offset.y);
     }
 
     private void ReturnBase()
     {
-        float distanza = Vector2.Distance(transform.position, posizioneIniziale);
+        float distance = Vector2.Distance(transform.position, startPosition);
 
-        if (distanza > 0.1f)
+        if (distance > 0.1f)
         {
-            Vector2 direction = (posizioneIniziale - transform.position).normalized;
-
+            Vector2 direction = ((Vector2)startPosition - rb.position).normalized;
             rb.linearVelocity = direction * speed;
             SetRunning(true);
-            FlipECollider(direction);
+            FlipAndCollider(direction);
+            return;
         }
-        else
+
+        rb.linearVelocity = Vector2.zero;
+        SetRunning(false);
+
+        if (detectionCollider != null)
         {
-            rb.linearVelocity = Vector2.zero;
-            SetRunning(false);
-
-            if (detectionCollider != null)
-            {
-                detectionCollider.offset = new Vector2(
-                    Mathf.Abs(detectionCollider.offset.x),
-                    detectionCollider.offset.y
-                );
-            }
-
-            if (sr != null)
-            {
-                sr.flipX = false;
-            }
+            detectionCollider.offset = new Vector2(Mathf.Abs(detectionCollider.offset.x), detectionCollider.offset.y);
         }
+
+        if (sr != null) sr.flipX = false;
     }
 
     public void InflictDamage()
     {
         if (!CanInflictDamage()) return;
-
-        if (currentTarget.CompareTag(playerTag))
-        {
-            PlayerHealth playerHealth = currentTarget.GetComponent<PlayerHealth>();
-
-            if (playerHealth != null)
-            {
-                playerHealth.ChangeHealth(-damage);
-            }
-
-            return;
-        }
-
-        if (currentTarget.CompareTag(npcTag))
-        {
-            MonkHealth monkHealth = currentTarget.GetComponent<MonkHealth>();
-
-            if (monkHealth != null)
-            {
-                monkHealth.TakeDamage(damage);
-            }
-        }
+        currentTarget.TakeDamage(damage);
     }
 
     public void EndAttack()
     {
-        AggiornaTargetSeNecessario();
+        attackCycleRunning = false;
+        UpdateTargetIfNeeded();
 
-        if (!TargetValido())
+        if (!TargetValid())
         {
-            TransizioneA(EnemyState.Idle);
+            SetState(EnemyState.Idle);
             return;
         }
 
         if (TargetInAttackRange())
         {
-            TransizioneA(EnemyState.Attack);
+            StartAttackCycle();
         }
         else
         {
-            TransizioneA(EnemyState.Chasing);
+            SetState(EnemyState.Chasing);
         }
     }
 
     private bool CanInflictDamage()
     {
-        if (!TargetValido()) return false;
-        if (currentState != EnemyState.Attack) return false;
-        if (!TargetInAttackRange()) return false;
-
-        return true;
+        return currentState == EnemyState.Attack && TargetValid() && TargetInAttackRange();
     }
 }

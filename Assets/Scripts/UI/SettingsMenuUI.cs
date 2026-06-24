@@ -5,37 +5,19 @@ using UnityEngine.UI;
 
 public class SettingsMenuUI : MonoBehaviour
 {
-    [Header("Video UI")]
     [SerializeField] private Toggle fullScreenToggle;
     [SerializeField] private TMP_Dropdown qualityDropdown;
     [SerializeField] private TMP_Dropdown resolutionDropdown;
-
-    [Header("Audio Sliders")]
     [SerializeField] private Slider masterVolumeSlider;
     [SerializeField] private Slider musicVolumeSlider;
     [SerializeField] private Slider ambientVolumeSlider;
     [SerializeField] private Slider sfxVolumeSlider;
     [SerializeField] private Slider uiVolumeSlider;
-
-    [Header("Audio Value Texts")]
     [SerializeField] private TMP_Text masterVolumeValueText;
     [SerializeField] private TMP_Text musicVolumeValueText;
     [SerializeField] private TMP_Text ambientVolumeValueText;
     [SerializeField] private TMP_Text sfxVolumeValueText;
     [SerializeField] private TMP_Text uiVolumeValueText;
-
-    [Header("Nomi oggetti audio nel prefab")]
-    [SerializeField] private string masterVolumeSliderName = "Slider_MasterVolume";
-    [SerializeField] private string musicVolumeSliderName = "Slider_MusicVolume";
-    [SerializeField] private string ambientVolumeSliderName = "Slider_AmbientVolume";
-    [SerializeField] private string sfxVolumeSliderName = "Slider_SfxVolume";
-    [SerializeField] private string uiVolumeSliderName = "Slider_UiVolume";
-
-    [SerializeField] private string masterVolumeTextName = "Text_MasterVolume";
-    [SerializeField] private string musicVolumeTextName = "Text_MusicVolume";
-    [SerializeField] private string ambientVolumeTextName = "Text_AmbientVolume";
-    [SerializeField] private string sfxVolumeTextName = "Text_SfxVolume";
-    [SerializeField] private string uiVolumeTextName = "Text_UiVolume";
 
     private Resolution[] resolutions;
     private bool isInitializingAudioUI;
@@ -48,6 +30,7 @@ public class SettingsMenuUI : MonoBehaviour
 
     private void Start()
     {
+        ResolveReferences();
         SetupVideoIfNeeded();
         SetupAudioSliders();
     }
@@ -55,6 +38,7 @@ public class SettingsMenuUI : MonoBehaviour
     private void OnEnable()
     {
         ResolveReferences();
+        SetupVideoIfNeeded();
         SetupAudioSliders();
         RefreshAudioSlidersFromManager();
     }
@@ -63,17 +47,19 @@ public class SettingsMenuUI : MonoBehaviour
     {
         Transform root = transform;
 
-        masterVolumeSlider = SceneReferenceFinder.ResolveComponentInChildren(masterVolumeSlider, root, masterVolumeSliderName);
-        musicVolumeSlider = SceneReferenceFinder.ResolveComponentInChildren(musicVolumeSlider, root, musicVolumeSliderName);
-        ambientVolumeSlider = SceneReferenceFinder.ResolveComponentInChildren(ambientVolumeSlider, root, ambientVolumeSliderName);
-        sfxVolumeSlider = SceneReferenceFinder.ResolveComponentInChildren(sfxVolumeSlider, root, sfxVolumeSliderName);
-        uiVolumeSlider = SceneReferenceFinder.ResolveComponentInChildren(uiVolumeSlider, root, uiVolumeSliderName);
-
-        masterVolumeValueText = SceneReferenceFinder.ResolveComponentInChildren(masterVolumeValueText, root, masterVolumeTextName);
-        musicVolumeValueText = SceneReferenceFinder.ResolveComponentInChildren(musicVolumeValueText, root, musicVolumeTextName);
-        ambientVolumeValueText = SceneReferenceFinder.ResolveComponentInChildren(ambientVolumeValueText, root, ambientVolumeTextName);
-        sfxVolumeValueText = SceneReferenceFinder.ResolveComponentInChildren(sfxVolumeValueText, root, sfxVolumeTextName);
-        uiVolumeValueText = SceneReferenceFinder.ResolveComponentInChildren(uiVolumeValueText, root, uiVolumeTextName);
+        fullScreenToggle = SceneReferenceFinder.ResolveComponentInChildren(fullScreenToggle, root, "FullscreenToggle");
+        qualityDropdown = SceneReferenceFinder.ResolveComponentInChildren(qualityDropdown, root, "QualityDropdown");
+        resolutionDropdown = SceneReferenceFinder.ResolveComponentInChildren(resolutionDropdown, root, "ResolutionDropdown");
+        masterVolumeSlider = SceneReferenceFinder.ResolveComponentInChildren(masterVolumeSlider, root, "Slider_MasterVolume");
+        musicVolumeSlider = SceneReferenceFinder.ResolveComponentInChildren(musicVolumeSlider, root, "Slider_MusicVolume");
+        ambientVolumeSlider = SceneReferenceFinder.ResolveComponentInChildren(ambientVolumeSlider, root, "Slider_AmbientVolume");
+        sfxVolumeSlider = SceneReferenceFinder.ResolveComponentInChildren(sfxVolumeSlider, root, "Slider_SfxVolume");
+        uiVolumeSlider = SceneReferenceFinder.ResolveComponentInChildren(uiVolumeSlider, root, "Slider_UiVolume");
+        masterVolumeValueText = SceneReferenceFinder.ResolveComponentInChildren(masterVolumeValueText, root, "Text_MasterVolume");
+        musicVolumeValueText = SceneReferenceFinder.ResolveComponentInChildren(musicVolumeValueText, root, "Text_MusicVolume");
+        ambientVolumeValueText = SceneReferenceFinder.ResolveComponentInChildren(ambientVolumeValueText, root, "Text_AmbientVolume");
+        sfxVolumeValueText = SceneReferenceFinder.ResolveComponentInChildren(sfxVolumeValueText, root, "Text_SfxVolume");
+        uiVolumeValueText = SceneReferenceFinder.ResolveComponentInChildren(uiVolumeValueText, root, "Text_UiVolume");
     }
 
     private void SetupVideoIfNeeded()
@@ -91,7 +77,7 @@ public class SettingsMenuUI : MonoBehaviour
     {
         if (fullScreenToggle == null) return;
 
-        fullScreenToggle.isOn = Screen.fullScreen;
+        fullScreenToggle.SetIsOnWithoutNotify(Screen.fullScreen);
         fullScreenToggle.onValueChanged.RemoveListener(SetFullscreen);
         fullScreenToggle.onValueChanged.AddListener(SetFullscreen);
     }
@@ -109,9 +95,8 @@ public class SettingsMenuUI : MonoBehaviour
         }
 
         qualityDropdown.AddOptions(options);
-        qualityDropdown.value = QualitySettings.GetQualityLevel();
+        qualityDropdown.SetValueWithoutNotify(QualitySettings.GetQualityLevel());
         qualityDropdown.RefreshShownValue();
-
         qualityDropdown.onValueChanged.RemoveListener(SetQuality);
         qualityDropdown.onValueChanged.AddListener(SetQuality);
     }
@@ -132,17 +117,15 @@ public class SettingsMenuUI : MonoBehaviour
             string option = resolutions[i].width + " x " + resolutions[i].height + " @ " + refreshRate + " Hz";
             options.Add(option);
 
-            if (resolutions[i].width == Screen.currentResolution.width &&
-                resolutions[i].height == Screen.currentResolution.height)
+            if (resolutions[i].width == Screen.currentResolution.width && resolutions[i].height == Screen.currentResolution.height)
             {
                 currentResolutionIndex = i;
             }
         }
 
         resolutionDropdown.AddOptions(options);
-        resolutionDropdown.value = currentResolutionIndex;
+        resolutionDropdown.SetValueWithoutNotify(currentResolutionIndex);
         resolutionDropdown.RefreshShownValue();
-
         resolutionDropdown.onValueChanged.RemoveListener(SetResolution);
         resolutionDropdown.onValueChanged.AddListener(SetResolution);
     }
@@ -165,7 +148,6 @@ public class SettingsMenuUI : MonoBehaviour
     private void AddSliderListener(Slider slider, UnityEngine.Events.UnityAction<float> callback)
     {
         if (slider == null) return;
-
         slider.onValueChanged.RemoveListener(callback);
         slider.onValueChanged.AddListener(callback);
     }
@@ -173,7 +155,6 @@ public class SettingsMenuUI : MonoBehaviour
     private void ConfigureSlider(Slider slider)
     {
         if (slider == null) return;
-
         slider.minValue = 0f;
         slider.maxValue = 1f;
         slider.wholeNumbers = false;
@@ -191,7 +172,6 @@ public class SettingsMenuUI : MonoBehaviour
         SetSliderValueWithoutNotify(ambientVolumeSlider, audioManager.ambientVolume);
         SetSliderValueWithoutNotify(sfxVolumeSlider, audioManager.sfxVolume);
         SetSliderValueWithoutNotify(uiVolumeSlider, audioManager.uiVolume);
-
         RefreshAllVolumeTexts();
 
         isInitializingAudioUI = false;
@@ -226,7 +206,6 @@ public class SettingsMenuUI : MonoBehaviour
     public void SetMasterVolume(float value)
     {
         if (isInitializingAudioUI) return;
-
         AudioManager.Instance?.SetMasterVolume(value);
         UpdateVolumeText(masterVolumeValueText, value);
     }
@@ -234,7 +213,6 @@ public class SettingsMenuUI : MonoBehaviour
     public void SetMusicVolume(float value)
     {
         if (isInitializingAudioUI) return;
-
         AudioManager.Instance?.SetMusicVolume(value);
         UpdateVolumeText(musicVolumeValueText, value);
     }
@@ -242,7 +220,6 @@ public class SettingsMenuUI : MonoBehaviour
     public void SetAmbientVolume(float value)
     {
         if (isInitializingAudioUI) return;
-
         AudioManager.Instance?.SetAmbientVolume(value);
         UpdateVolumeText(ambientVolumeValueText, value);
     }
@@ -250,7 +227,6 @@ public class SettingsMenuUI : MonoBehaviour
     public void SetSfxVolume(float value)
     {
         if (isInitializingAudioUI) return;
-
         AudioManager.Instance?.SetSfxVolume(value);
         UpdateVolumeText(sfxVolumeValueText, value);
     }
@@ -258,7 +234,6 @@ public class SettingsMenuUI : MonoBehaviour
     public void SetUiVolume(float value)
     {
         if (isInitializingAudioUI) return;
-
         AudioManager.Instance?.SetUiVolume(value);
         UpdateVolumeText(uiVolumeValueText, value);
     }
@@ -281,8 +256,6 @@ public class SettingsMenuUI : MonoBehaviour
     private void UpdateVolumeText(TMP_Text text, float value)
     {
         if (text == null) return;
-
-        int percentage = Mathf.RoundToInt(Mathf.Clamp01(value) * 100f);
-        text.text = percentage + "%";
+        text.text = Mathf.RoundToInt(Mathf.Clamp01(value) * 100f) + "%";
     }
 }
