@@ -1,11 +1,8 @@
 using TMPro;
-using Unity.VisualScripting.Antlr3.Runtime.Misc;
-using Unity.VisualScripting.Antlr3.Runtime.Tree;
 using UnityEngine;
 
 public class PlayerHealth : MonoBehaviour
 {
-
     [Header("Stats")]
     public PlayerStats stats;
 
@@ -16,45 +13,90 @@ public class PlayerHealth : MonoBehaviour
     public TMP_Text healthText;
     public Animator healthTextAnim;
 
+    [Header("Nomi UI nella scena")]
+    [SerializeField] private string healthTextObjectName = "HealthText";
+    [SerializeField] private string fallbackHealthTextObjectName = "Player Health";
+    [SerializeField] private string healthTextAnimatorObjectName = "HealthText";
+
     private bool isInvulnerable = false;
+
+    private void Awake()
+    {
+        ResolveReferences();
+    }
+
     private void Start()
     {
-        if(stats != null)
+        ResolveReferences();
+
+        if (stats != null && currentHealth <= 0)
         {
             currentHealth = stats.vitaMassimaEffettiva;
         }
-        UpdateHealthText();
 
+        UpdateHealthText();
+    }
+
+    private void ResolveReferences()
+    {
+        if (stats == null)
+        {
+            stats = GetComponent<PlayerStats>();
+        }
+
+        healthText = SceneReferenceFinder.ResolveComponentInChildren(healthText, null, healthTextObjectName);
+
+        if (healthText == null && !string.IsNullOrWhiteSpace(fallbackHealthTextObjectName))
+        {
+            healthText = SceneReferenceFinder.ResolveComponentInChildren(healthText, null, fallbackHealthTextObjectName);
+        }
+
+        healthTextAnim = SceneReferenceFinder.ResolveComponentInChildren(healthTextAnim, null, healthTextAnimatorObjectName);
+
+        if (healthTextAnim == null && healthText != null)
+        {
+            healthTextAnim = healthText.GetComponent<Animator>();
+        }
     }
 
     public void ChangeHealth(int amount)
     {
-        if(isInvulnerable && amount < 0)
+        ResolveReferences();
+
+        if (isInvulnerable && amount < 0)
         {
             return;
         }
 
-        if(amount < 0 && stats != null)
+        if (amount < 0 && stats != null)
         {
             int dannoSubito = stats.ApplicaDifesa(-amount);
             amount = -dannoSubito;
         }
+
         currentHealth += amount;
-        int max = stats.vitaMassimaEffettiva;
+
+        int max = stats != null ? stats.vitaMassimaEffettiva : Mathf.Max(1, currentHealth);
         currentHealth = Mathf.Clamp(currentHealth, 0, max);
-        if(healthTextAnim != null)
+
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.UpdateHealth(currentHealth, max);
+        }
+
+        if (healthTextAnim != null)
         {
             healthTextAnim.Play("TextAnimation");
         }
 
         UpdateHealthText();
 
-        if ( currentHealth <= 0)
+        if (currentHealth <= 0)
         {
             gameObject.SetActive(false);
         }
     }
-    
+
     public void AumentaVitaMassima(int quantita)
     {
         currentHealth += quantita;
@@ -68,10 +110,17 @@ public class PlayerHealth : MonoBehaviour
 
     public void UpdateHealthText()
     {
-        if (healthText != null)
+        ResolveReferences();
+
+        int max = stats != null ? stats.vitaMassimaEffettiva : Mathf.Max(1, currentHealth);
+
+        if (HUDManager.Instance != null)
         {
-            int max = stats.vitaMassimaEffettiva;
-            healthText.text = "HP: " + currentHealth + " / " + max;
+            HUDManager.Instance.UpdateHealth(currentHealth, max);
         }
+
+        if (healthText == null) return;
+
+        healthText.text = "HP: " + currentHealth + " / " + max;
     }
 }

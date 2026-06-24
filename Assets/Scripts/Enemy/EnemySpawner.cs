@@ -15,6 +15,9 @@ public class EnemySpawner : MonoBehaviour
     public GameObject enemyPrefab;
     public Transform[] spawnPoints;
 
+    [Tooltip("Offset casuale piccolo intorno allo spawn point. Utile quando i nemici sono più degli spawn point.")]
+    public float spawnRandomOffset = 0.35f;
+
     [Header("Timing")]
     [Tooltip("Pausa prima di far partire l'ondata successiva.")]
     public float pausaTraOndate = 1.5f;
@@ -25,8 +28,7 @@ public class EnemySpawner : MonoBehaviour
     private QuestData quest;
     private int indiceOndataCorrente = 0;
     private Coroutine routineOndate;
-
-    private Dictionary<int, GameObject> occupiedPoints = new Dictionary<int, GameObject>();
+    private readonly List<GameObject> spawnedEnemies = new List<GameObject>();
 
     public void AvviaQuest(QuestData questData)
     {
@@ -41,8 +43,7 @@ public class EnemySpawner : MonoBehaviour
         quest = questData;
         indiceOndataCorrente = 0;
         stato = SpawnerState.InCorso;
-
-        occupiedPoints.Clear();
+        spawnedEnemies.Clear();
 
         if (routineOndate != null)
         {
@@ -62,25 +63,24 @@ public class EnemySpawner : MonoBehaviour
 
         if (distruggiNemiciSpawnati)
         {
-            foreach (var coppia in occupiedPoints)
+            foreach (GameObject enemy in spawnedEnemies)
             {
-                if (coppia.Value != null)
+                if (enemy != null)
                 {
-                    Destroy(coppia.Value);
+                    Destroy(enemy);
                 }
             }
         }
 
-        occupiedPoints.Clear();
+        spawnedEnemies.Clear();
         stato = SpawnerState.Inattivo;
     }
 
     private IEnumerator GestisciOndate()
     {
-        while (stato == SpawnerState.InCorso && indiceOndataCorrente < quest.ondate.Count)
+        while (stato == SpawnerState.InCorso && quest != null && indiceOndataCorrente < quest.ondate.Count)
         {
             Ondata ondata = quest.ondate[indiceOndataCorrente];
-
             SpawnaOndata(ondata);
 
             yield return new WaitUntil(() => stato != SpawnerState.InCorso || OndataAzzerata());
@@ -131,68 +131,52 @@ public class EnemySpawner : MonoBehaviour
             return;
         }
 
-        CleanEnemyList();
+        List<Transform> validSpawnPoints = new List<Transform>();
 
-        List<int> puntiLiberi = new List<int>();
-
-        for (int i = 0; i < spawnPoints.Length; i++)
+        foreach (Transform spawnPoint in spawnPoints)
         {
-            if (spawnPoints[i] == null) continue;
-
-            if (!occupiedPoints.ContainsKey(i))
+            if (spawnPoint != null)
             {
-                puntiLiberi.Add(i);
+                validSpawnPoints.Add(spawnPoint);
             }
         }
 
-        if (puntiLiberi.Count == 0)
+        if (validSpawnPoints.Count == 0)
         {
-            Debug.LogWarning("Nessuno spawn point libero.");
+            Debug.LogWarning("Nessun spawn point valido.");
             return;
         }
 
-        int scelto = puntiLiberi[Random.Range(0, puntiLiberi.Count)];
-        Transform selectedSpawn = spawnPoints[scelto];
+        Transform selectedSpawn = validSpawnPoints[Random.Range(0, validSpawnPoints.Count)];
+        Vector2 randomOffset = Random.insideUnitCircle * spawnRandomOffset;
+        Vector3 spawnPosition = selectedSpawn.position + new Vector3(randomOffset.x, randomOffset.y, 0f);
 
-        GameObject enemy = Instantiate(
-            enemyPrefab,
-            selectedSpawn.position,
-            Quaternion.identity
-        );
+        GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
+        spawnedEnemies.Add(enemy);
 
         Enemy_AI ai = enemy.GetComponent<Enemy_AI>();
-
         if (ai == null)
         {
             Debug.LogWarning("Enemy_AI non presente sul prefab nemico.");
         }
-
-        occupiedPoints.Add(scelto, enemy);
     }
 
     private bool OndataAzzerata()
     {
         CleanEnemyList();
-        return occupiedPoints.Count == 0;
+        return spawnedEnemies.Count == 0;
     }
 
     private void CleanEnemyList()
     {
-        List<int> daRimuovere = new List<int>();
-
-        foreach (var coppia in occupiedPoints)
+        for (int i = spawnedEnemies.Count - 1; i >= 0; i--)
         {
-            GameObject enemy = coppia.Value;
+            GameObject enemy = spawnedEnemies[i];
 
             if (enemy == null || !enemy.activeInHierarchy)
             {
-                daRimuovere.Add(coppia.Key);
+                spawnedEnemies.RemoveAt(i);
             }
-        }
-
-        foreach (int indice in daRimuovere)
-        {
-            occupiedPoints.Remove(indice);
         }
     }
 }

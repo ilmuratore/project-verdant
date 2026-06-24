@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -15,20 +14,33 @@ public class QuestSceneLoader : MonoBehaviour
     [SerializeField] private string nomeScenaSuccesiva = "Scene#2";
 
     [Header("UI Opzionale")]
-    [Tooltip("Pannello da mostrare a quest completate per far avanzare eventualmente alla prossima scena")]
+    [Tooltip("Pannello da mostrare a quest completata per far avanzare eventualmente alla prossima scena.")]
     [SerializeField] private GameObject nextLevelPanel;
+    [SerializeField] private string nextLevelPanelName = "NextLevelPanel";
 
     private bool eventoCollegato = false;
     private bool cambioInCorso = false;
 
+    private void Awake()
+    {
+        ResolveReferences();
+    }
+
     private void Start()
     {
-        if (nextLevelPanel != null) nextLevelPanel.SetActive(false);
+        ResolveReferences();
+
+        if (nextLevelPanel != null)
+        {
+            nextLevelPanel.SetActive(false);
+        }
+
         CollegaQuestManager();
     }
 
     private void OnEnable()
     {
+        ResolveReferences();
         CollegaQuestManager();
     }
 
@@ -37,11 +49,27 @@ public class QuestSceneLoader : MonoBehaviour
         ScollegaQuestManager();
     }
 
+    private void ResolveReferences()
+    {
+        if (questManager == null || !SceneReferenceFinder.IsSceneInstance(questManager))
+        {
+            questManager = SceneReferenceFinder.FindComponentInActiveScene<QuestManager>();
+        }
+
+        nextLevelPanel = SceneReferenceFinder.ResolveSceneObject(nextLevelPanel, null, nextLevelPanelName);
+    }
+
     private void CollegaQuestManager()
     {
         if (eventoCollegato) return;
-        if (questManager == null) questManager = FindFirstObjectByType<QuestManager>();
+
+        if (questManager == null)
+        {
+            ResolveReferences();
+        }
+
         if (questManager == null) return;
+
         questManager.OnQuestCompletata += GestisciQuestCompletata;
         eventoCollegato = true;
     }
@@ -50,6 +78,7 @@ public class QuestSceneLoader : MonoBehaviour
     {
         if (!eventoCollegato) return;
         if (questManager == null) return;
+
         questManager.OnQuestCompletata -= GestisciQuestCompletata;
         eventoCollegato = false;
     }
@@ -57,10 +86,19 @@ public class QuestSceneLoader : MonoBehaviour
     private void GestisciQuestCompletata()
     {
         if (cambioInCorso) return;
-        if (nextLevelPanel != null) nextLevelPanel.SetActive(true);
-        if (caricaAutomaticamente) StartCoroutine(CaricaDopoAttesa());
-    }
 
+        ResolveReferences();
+
+        if (nextLevelPanel != null)
+        {
+            nextLevelPanel.SetActive(true);
+        }
+
+        if (caricaAutomaticamente)
+        {
+            StartCoroutine(CaricaDopoAttesa());
+        }
+    }
 
     private IEnumerator CaricaDopoAttesa()
     {
@@ -69,27 +107,30 @@ public class QuestSceneLoader : MonoBehaviour
         CaricaScenaSuccessiva();
     }
 
-
     public void CaricaScenaSuccessiva()
     {
         Time.timeScale = 1f;
+
         if (!string.IsNullOrWhiteSpace(nomeScenaSuccesiva))
         {
             SceneManager.LoadScene(nomeScenaSuccesiva);
             return;
         }
-        if(buildIndexScenaSuccessiva >= 0  && buildIndexScenaSuccessiva < SceneManager.sceneCountInBuildSettings)
+
+        if (buildIndexScenaSuccessiva >= 0 && buildIndexScenaSuccessiva < SceneManager.sceneCountInBuildSettings)
         {
             SceneManager.LoadScene(buildIndexScenaSuccessiva);
             return;
         }
 
         int nextIndex = SceneManager.GetActiveScene().buildIndex + 1;
-        if(nextIndex >= 0 && nextIndex < SceneManager.sceneCountInBuildSettings)
+
+        if (nextIndex >= 0 && nextIndex < SceneManager.sceneCountInBuildSettings)
         {
             SceneManager.LoadScene(nextIndex);
             return;
         }
-        Debug.LogWarning("Nessuna scena successiva valida. Controlla");
+
+        Debug.LogWarning("Nessuna scena successiva valida. Controlla nome scena e Build Settings.");
     }
 }

@@ -59,17 +59,7 @@ public class NPC_AI : MonoBehaviour
         health = GetComponent<MonkHealth>();
 
         puntoDiPartenza = transform.position;
-
-        if (player == null)
-        {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-
-            if (playerObj != null)
-            {
-                player = playerObj.transform;
-            }
-        }
-
+        ResolveSceneReferences();
         TransizioneA(NPCstate.Idle);
     }
 
@@ -126,6 +116,24 @@ public class NPC_AI : MonoBehaviour
         if (currentState == NPCstate.Wandering)
         {
             UpdateWanderingFisico();
+        }
+    }
+
+    private void ResolveSceneReferences()
+    {
+        if (player == null || !SceneReferenceFinder.IsSceneInstance(player))
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+
+            if (playerObj != null)
+            {
+                player = playerObj.transform;
+            }
+        }
+
+        if (dialogo == null || !SceneReferenceFinder.IsSceneInstance(dialogo))
+        {
+            dialogo = SceneReferenceFinder.FindComponentInActiveScene<DialogueController>();
         }
     }
 
@@ -241,9 +249,11 @@ public class NPC_AI : MonoBehaviour
 
     private void IniziaDialogo()
     {
+        ResolveSceneReferences();
+
         if (dialogo == null)
         {
-            Debug.LogWarning("DialogueController non assegnato a NPC.");
+            Debug.LogWarning("DialogueController non trovato nella scena.");
             return;
         }
 
@@ -258,22 +268,27 @@ public class NPC_AI : MonoBehaviour
 
     private bool PlayerVicino()
     {
-        if (player == null) return false;
+        ResolveSceneReferences();
 
+        if (player == null) return false;
         return Vector2.Distance(transform.position, player.position) <= raggioInterazione;
     }
 
     private void StopMovement()
     {
-        rb.linearVelocity = Vector2.zero;
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+        }
+
         SetWalking(false);
     }
 
-    private void SetWalking(bool walking)
+    private void SetWalking(bool value)
     {
         if (anim != null)
         {
-            anim.SetBool("IsWalking", walking);
+            anim.SetBool("IsWalking", value);
         }
     }
 
@@ -281,22 +296,13 @@ public class NPC_AI : MonoBehaviour
     {
         if (sr == null) return;
 
-        if (direzione.x > 0.1f)
+        if (direzione.x > 0.01f)
         {
             sr.flipX = false;
         }
-        else if (direzione.x < -0.1f)
+        else if (direzione.x < -0.01f)
         {
             sr.flipX = true;
         }
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, raggioInterazione);
-
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(transform.position, raggioMovimento);
     }
 }

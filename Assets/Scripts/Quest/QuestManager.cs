@@ -51,6 +51,15 @@ public class QuestManager : MonoBehaviour
         }
 
         Instance = this;
+        ResolveReferences();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
     }
 
     private void Update()
@@ -78,9 +87,19 @@ public class QuestManager : MonoBehaviour
         MonkHealth.OnAnyMonkDied -= GestisciMonacoMorto;
     }
 
+    private void ResolveReferences()
+    {
+        if (spawner == null || !SceneReferenceFinder.IsSceneInstance(spawner))
+        {
+            spawner = SceneReferenceFinder.FindComponentInActiveScene<EnemySpawner>();
+        }
+    }
+
     public void IniziaQuest()
     {
         if (stato != QuestState.NonIniziata) return;
+
+        ResolveReferences();
 
         if (questAttiva == null)
         {
@@ -139,7 +158,7 @@ public class QuestManager : MonoBehaviour
             spawner.FermaSpawner(false);
         }
 
-        PlayerStats ps = FindFirstObjectByType<PlayerStats>();
+        PlayerStats ps = SceneReferenceFinder.FindComponentInActiveScene<PlayerStats>();
         if (ps != null && questAttiva != null)
         {
             ps.AddXp(questAttiva.xpRicompensa);

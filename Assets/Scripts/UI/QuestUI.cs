@@ -5,9 +5,11 @@ using UnityEngine.InputSystem;
 public class QuestUI : MonoBehaviour
 {
     [Header("Riferimenti")]
+    [SerializeField] private Transform hudRoot;
+    [SerializeField] private string hudRootName = "HUD";
     public QuestManager questManager;
 
-    [Header("Pannello quest")]
+    [Header("Pannello avanzamento quest")]
     public GameObject pannelloQuest;
     public TMP_Text titoloQuest;
     public TMP_Text avanzamentoQuest;
@@ -20,11 +22,29 @@ public class QuestUI : MonoBehaviour
     public GameObject pannelloSconfitta;
     public TMP_Text testoSconfitta;
 
+    [Header("Nomi oggetti nel prefab HUD")]
+    [SerializeField] private string pannelloQuestName = "QuestUI";
+    [SerializeField] private string titoloQuestName = "TitoloQuest";
+    [SerializeField] private string avanzamentoQuestName = "AvanzamentoQuest";
+    [SerializeField] private string pannelloVittoriaName = "Panel_Victory";
+    [SerializeField] private string testoVittoriaName = "TestoVittoria";
+    [SerializeField] private string pannelloSconfittaName = "Panel_Defeat";
+    [SerializeField] private string testoSconfittaName = "TestoSconfitta";
+
     [Header("Chiusura pannelli finali")]
     public bool chiudiConTasto = true;
 
+    private bool eventSubscribed;
+
+    private void Awake()
+    {
+        ResolveReferences();
+    }
+
     private void Start()
     {
+        ResolveReferences();
+        SubscribeToQuestManager();
         NascondiTuttiIPannelli();
     }
 
@@ -45,26 +65,65 @@ public class QuestUI : MonoBehaviour
 
     private void OnEnable()
     {
-        if (questManager != null)
-        {
-            questManager.OnQuestAggiornata += Aggiorna;
-            questManager.OnQuestCompletata += MostraVittoria;
-            questManager.OnQuestFallita += MostraSconfitta;
-        }
+        ResolveReferences();
+        SubscribeToQuestManager();
     }
 
     private void OnDisable()
     {
-        if (questManager != null)
+        UnsubscribeFromQuestManager();
+    }
+
+    private void ResolveReferences()
+    {
+        if (questManager == null || !SceneReferenceFinder.IsSceneInstance(questManager))
         {
-            questManager.OnQuestAggiornata -= Aggiorna;
-            questManager.OnQuestCompletata -= MostraVittoria;
-            questManager.OnQuestFallita -= MostraSconfitta;
+            questManager = SceneReferenceFinder.FindComponentInActiveScene<QuestManager>();
         }
+
+        hudRoot = SceneReferenceFinder.ResolveSceneTransform(hudRoot, hudRootName);
+        Transform root = hudRoot != null ? hudRoot : transform;
+
+        pannelloQuest = SceneReferenceFinder.ResolveSceneObject(pannelloQuest, root, pannelloQuestName);
+        pannelloVittoria = SceneReferenceFinder.ResolveSceneObject(pannelloVittoria, root, pannelloVittoriaName);
+        pannelloSconfitta = SceneReferenceFinder.ResolveSceneObject(pannelloSconfitta, root, pannelloSconfittaName);
+
+        Transform questRoot = pannelloQuest != null ? pannelloQuest.transform : root;
+        Transform victoryRoot = pannelloVittoria != null ? pannelloVittoria.transform : root;
+        Transform defeatRoot = pannelloSconfitta != null ? pannelloSconfitta.transform : root;
+
+        titoloQuest = SceneReferenceFinder.ResolveComponentInChildren(titoloQuest, questRoot, titoloQuestName);
+        avanzamentoQuest = SceneReferenceFinder.ResolveComponentInChildren(avanzamentoQuest, questRoot, avanzamentoQuestName);
+        testoVittoria = SceneReferenceFinder.ResolveComponentInChildren(testoVittoria, victoryRoot, testoVittoriaName);
+        testoSconfitta = SceneReferenceFinder.ResolveComponentInChildren(testoSconfitta, defeatRoot, testoSconfittaName);
+    }
+
+    private void SubscribeToQuestManager()
+    {
+        if (eventSubscribed) return;
+        if (questManager == null) return;
+
+        questManager.OnQuestAggiornata += Aggiorna;
+        questManager.OnQuestCompletata += MostraVittoria;
+        questManager.OnQuestFallita += MostraSconfitta;
+        eventSubscribed = true;
+    }
+
+    private void UnsubscribeFromQuestManager()
+    {
+        if (!eventSubscribed) return;
+        if (questManager == null) return;
+
+        questManager.OnQuestAggiornata -= Aggiorna;
+        questManager.OnQuestCompletata -= MostraVittoria;
+        questManager.OnQuestFallita -= MostraSconfitta;
+        eventSubscribed = false;
     }
 
     private void Aggiorna()
     {
+        ResolveReferences();
+
         if (questManager == null) return;
 
         if (questManager.Stato == QuestState.InCorso)
@@ -93,6 +152,8 @@ public class QuestUI : MonoBehaviour
 
     private void MostraVittoria()
     {
+        ResolveReferences();
+
         if (pannelloQuest != null) pannelloQuest.SetActive(false);
         if (pannelloVittoria != null) pannelloVittoria.SetActive(true);
         if (pannelloSconfitta != null) pannelloSconfitta.SetActive(false);
@@ -109,6 +170,8 @@ public class QuestUI : MonoBehaviour
 
     private void MostraSconfitta()
     {
+        ResolveReferences();
+
         if (pannelloQuest != null) pannelloQuest.SetActive(false);
         if (pannelloVittoria != null) pannelloVittoria.SetActive(false);
         if (pannelloSconfitta != null) pannelloSconfitta.SetActive(true);
