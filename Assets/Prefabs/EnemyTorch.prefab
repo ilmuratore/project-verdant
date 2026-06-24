@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 9117961341517427234}
   - component: {fileID: 472512864227879600}
   - component: {fileID: 2161552598779648751}
+  - component: {fileID: 3580237024461642836}
   m_Layer: 6
   m_Name: EnemyTorch
   m_TagString: Untagged
@@ -251,6 +252,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
   data: {fileID: 11400000, guid: f8cf42ae84748c44889926409ae9ff21, type: 2}
   currentHealth: 5
+--- !u!114 &3580237024461642836
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231854084470453284}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3add29711ec8ad49a39ebe871f34b87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimationSoundEvents
+  playerAttackClip: {fileID: 0}
+  playerDodgeClip: {fileID: 0}
+  playerFootstepClip: {fileID: 0}
+  playerHitClip: {fileID: 0}
+  enemyAttackClip: {fileID: 8300000, guid: 719a0d5f7a6f81641bac00cafce5b113, type: 3}
+  enemyHitClip: {fileID: 8300000, guid: ceb813db2edb4674c87acb1f3f6a76bb, type: 3}
+  enemyDeathClip: {fileID: 8300000, guid: 227389bcc16f0d5478a0b7b032a0ccb2, type: 3}
+  enemyFootstepClip: {fileID: 8300000, guid: ec7a27797acb1df4c989f60e7b6e5b68, type: 3}
+  specialClip: {fileID: 8300000, guid: 99a02a45ba06b5240b3d61704be9d0b2, type: 3}
+  volumeScale: 0.5
+  use2DSound: 1
 --- !u!1 &2308231937545567672
 GameObject:
   m_ObjectHideFlags: 0

@@ -12,11 +12,11 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioSource uiSource;
 
     [Header("Volume")]
-    [Range(0f, 1f)] public float masterVolume = 1f;
-    [Range(0f, 1f)] public float musicVolume = 0.6f;
-    [Range(0f, 1f)] public float ambientVolume = 0.45f;
-    [Range(0f, 1f)] public float sfxVolume = 0.60f;
-    [Range(0f, 1f)] public float uiVolume = 0.6f;
+    [Range(0f, 1f)] public float masterVolume = 0.5f;
+    [Range(0f, 1f)] public float musicVolume = 0.5f;
+    [Range(0f, 1f)] public float ambientVolume = 0.08f;
+    [Range(0f, 1f)] public float sfxVolume = 0.5f;
+    [Range(0f, 1f)] public float uiVolume = 0.5f;
 
     [Header("Avvio")]
     public AudioClip defaultMusic;
