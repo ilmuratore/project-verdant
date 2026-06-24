@@ -28,7 +28,8 @@ public class PlayerMovement : MonoBehaviour
 
     private int facingDirection = 1;
     private bool canDodge = true;
-    private bool controlliBloccato = false;
+
+    public bool controlliBloccato = false;
 
 
     void Start()
@@ -175,8 +176,10 @@ public class PlayerMovement : MonoBehaviour
 
     public void StartAttack()
     {
-        TransizioneA(PlayerState.Attacking);
+       
+         TransizioneA(PlayerState.Attacking);
         rb.linearVelocity = Vector2.zero;
+       
     }
 
     public void EndAttack()

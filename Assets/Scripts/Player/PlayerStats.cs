@@ -17,7 +17,7 @@ public class PlayerStats : MonoBehaviour
     public int puntiDifesa = 0;
     public int puntiVita = 0;
 
-
+    
     public event Action OnStatsChanged;
 
     public int AttaccoEffettivo

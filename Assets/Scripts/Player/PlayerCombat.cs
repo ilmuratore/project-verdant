@@ -31,7 +31,7 @@ public class PlayerCombat : MonoBehaviour
     private void TryAttack()
     {
         if (playerMovement == null) return;
-
+        if (playerMovement.controlliBloccato) return;
         if (!playerMovement.CanAttack())
         {
             return;
