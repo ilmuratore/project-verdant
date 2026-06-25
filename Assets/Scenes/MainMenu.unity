@@ -335,10 +335,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuManager
   menuRoot: {fileID: 0}
-  menuRootName: Menus
-  mainPanelName: MainPanel
-  settingsPanelName: SettingsPanel
-  levelSelectPanelName: LevelSelectPanel
   mainPanel: {fileID: 0}
   settingsPanel: {fileID: 0}
   levelSelectPanel: {fileID: 0}

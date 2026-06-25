@@ -101,4 +101,17 @@ public class PlayerStats : MonoBehaviour
         OnStatsChanged?.Invoke();
         UIManager.Instance?.RefreshPlayerStats();
     }
+
+    public void ApplySaveData(PlayerSaveData saveData)
+    {
+        if (saveData == null || !saveData.hasData) return;
+        level = Mathf.Max(1, saveData.level);
+        currentXp = Mathf.Max(0, saveData.currentXp);
+        puntiDisponibili = Mathf.Max(0, saveData.puntiAttacco);
+        puntiAttacco = Mathf.Max(0, saveData.puntiAttacco);
+        puntiDifesa = Mathf.Max(0, saveData.puntiDifesa);
+        puntiVita = Mathf.Max(0, saveData.puntiVita);
+
+        NotifyChanged();
+    }
 }

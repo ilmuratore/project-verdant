@@ -40,8 +40,14 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private void Start()
     {
-        currentHealth = Mathf.Clamp(currentHealth, 1, MaxHealth);
-        UIManager.Instance?.UpdatePlayerHealth(currentHealth, MaxHealth);
+        bool applied = PlayerProgressMemory.TryApplyToPlayer(stats, this, transform);
+
+        if (!applied)
+        {
+            currentHealth = Mathf.Clamp(currentHealth, 1, MaxHealth);
+            UIManager.Instance?.UpdatePlayerHealth(currentHealth, MaxHealth);
+        }
+       
     }
 
     public void TakeDamage(int amount)
@@ -85,6 +91,12 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     public void UpdateHealthText()
     {
+        UIManager.Instance?.UpdatePlayerHealth(currentHealth, MaxHealth);
+    }
+
+    public void ApplySavedHealth(int savedCurrentHealth)
+    {
+        currentHealth = Mathf.Clamp(savedCurrentHealth, 1, MaxHealth);
         UIManager.Instance?.UpdatePlayerHealth(currentHealth, MaxHealth);
     }
 

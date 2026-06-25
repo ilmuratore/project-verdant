@@ -48,6 +48,7 @@ public class SceneLoader : MonoBehaviour
     public void LoadNextScene()
     {
         Time.timeScale = 1f;
+        PlayerProgressMemory.CaptureFromCurrentPlayer(false);
 
         if (!string.IsNullOrWhiteSpace(nextSceneName))
         {

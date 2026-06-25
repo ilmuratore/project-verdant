@@ -10,10 +10,10 @@ EditorBuildSettings:
     guid: aa3cf06b7a2f33747a3441d938fa04ff
   - enabled: 1
     path: Assets/Scenes/Scene#1.unity
-    guid: 8c9cfa26abfee488c85f1582747f6a02
+    guid: d8468e8b06ec7cf4ca4e6c45ecf0e50c
   - enabled: 1
     path: Assets/Scenes/Scene#2.unity
-    guid: c65753368131c47469f57c6a1320b373
+    guid: e79f3f6f6c39b0f4187124050946dd6e
   m_configObjects:
     com.unity.adaptivePerformance.basic.provider_settings: {fileID: 11400000, guid: da00f12f3af1fb841bed4038756b33bf, type: 2}
     com.unity.adaptiveperformance.loader_settings: {fileID: 11400000, guid: 55838ba985c5d7c4d863ad221304e057, type: 2}

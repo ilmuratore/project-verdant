@@ -46,6 +46,9 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button settingsButton;
     [SerializeField] private Button restartButton;
     [SerializeField] private Button mainMenuButton;
+    [SerializeField] private Button saveButton;
+    [SerializeField] private Button loadSaveButton;
+    [SerializeField] private Button deleteSaveButton;
     [SerializeField] private Button exitButton;
     [SerializeField] private Button backButton;
     [SerializeField] private Button resetAudioButton;
@@ -184,6 +187,9 @@ public class UIManager : MonoBehaviour
         settingsButton = ResolveButton(settingsButton, root, "SettingsButton");
         restartButton = ResolveButton(restartButton, root, "RestartButton");
         mainMenuButton = ResolveButton(mainMenuButton, root, "MainMenuButton");
+        saveButton = ResolveButton(saveButton, root, "SaveButton");
+        loadSaveButton = ResolveButton(loadSaveButton, root, "LoadSaveButton");
+        deleteSaveButton = ResolveButton(deleteSaveButton, root, "DeleteSaveButton");
         exitButton = ResolveButton(exitButton, root, "ExitButton");
         backButton = ResolveButton(backButton, root, "BackButton");
         resetAudioButton = ResolveButton(resetAudioButton, root, "ResetAudioButton");
@@ -220,6 +226,9 @@ public class UIManager : MonoBehaviour
         BindButton(retryButton, () => SceneLoader.Instance?.RestartScene());
         BindButton(loadNextLevelButton, () => SceneLoader.Instance?.LoadNextScene());
         BindButton(continueButton, ResumeGame);
+        BindButton(saveButton, SaveGame);
+        BindButton(loadSaveButton, LoadSavedGame);
+        BindButton(deleteSaveButton, DeleteSavedGame);
         BindButton(settingsButton, OpenSettings);
         BindButton(restartButton, () => SceneLoader.Instance?.RestartScene());
         BindButton(mainMenuButton, () => SceneLoader.Instance?.LoadMainMenu());
@@ -503,6 +512,24 @@ public class UIManager : MonoBehaviour
         GameManager.Instance?.Resume();
         SetActive(pauseMenuPanel, false);
         SetActive(settingsPanel, false);
+    }
+
+
+    public void SaveGame()
+    {
+        SaveSystem.SaveCurrentGame();
+    }
+
+
+    public void LoadSavedGame()
+    {
+        Time.timeScale = 1f;
+        SaveSystem.LoadSaveGame();
+    }
+
+    public void DeleteSavedGame()
+    {
+        SaveSystem.DeleteSave();
     }
 
     public void OpenSettings()

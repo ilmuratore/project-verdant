@@ -33,6 +33,7 @@ public class MainMenuManager : MonoBehaviour
     public void StartNewGame()
     {
         Time.timeScale = 1f;
+        PlayerProgressMemory.Clear();
 
         if (!string.IsNullOrWhiteSpace(firstGameSceneName))
         {
@@ -41,6 +42,21 @@ public class MainMenuManager : MonoBehaviour
         }
 
         LoadSceneByBuildIndex(firstGameSceneBuildIndex);
+    }
+
+    public void ContinueGame()
+    {
+        Time.timeScale = 1f;
+        bool loaded = SaveSystem.LoadSaveGame();
+        if (!loaded)
+        {
+            StartNewGame();
+        }
+    }
+
+    public void DeleteSave()
+    {
+        SaveSystem.DeleteSave();
     }
 
     public void OpenMainPanel()
